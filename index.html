@@ -3,34 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SIGNAL — скрытый слой города</title>
+    <title>SIGNAL — Минск. Скрытый слой города</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            background: #0a0c12;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            overflow: hidden;
-            height: 100vh;
-        }
-        #map {
-            height: 100vh;
-            width: 100%;
-            z-index: 1;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0c12; font-family: 'Inter', system-ui, sans-serif; overflow: hidden; height: 100vh; }
+        #map { height: 100vh; width: 100%; z-index: 1; }
         .ui-overlay {
             position: fixed;
             bottom: 20px;
             left: 0;
             right: 0;
-            z-index: 10;
             display: flex;
             justify-content: center;
+            z-index: 10;
             pointer-events: none;
         }
         .signal-panel {
@@ -45,17 +32,9 @@
             border: 1px solid rgba(74, 255, 181, 0.3);
             box-shadow: 0 8px 20px rgba(0,0,0,0.4);
         }
-        .signal-info {
-            color: white;
-        }
-        .signal-name {
-            font-weight: bold;
-            font-size: 1rem;
-        }
-        .signal-distance {
-            font-size: 0.75rem;
-            color: #4affb5;
-        }
+        .signal-info { color: white; }
+        .signal-name { font-weight: bold; font-size: 1rem; }
+        .signal-distance { font-size: 0.75rem; color: #4affb5; }
         button {
             background: #4affb5;
             border: none;
@@ -66,9 +45,7 @@
             cursor: pointer;
             transition: 0.2s;
         }
-        button:active {
-            transform: scale(0.96);
-        }
+        button:active { transform: scale(0.96); }
         .user-greeting {
             position: fixed;
             top: 16px;
@@ -114,9 +91,7 @@
             gap: 20px;
             border-left: 1px solid #2e3548;
         }
-        .side-menu.open {
-            right: 0;
-        }
+        .side-menu.open { right: 0; }
         .side-menu a {
             color: white;
             text-decoration: none;
@@ -133,17 +108,16 @@
         }
     </style>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK (клиентский) -->
     <script type="module">
-        // Импорт Firebase будет внутри модуля
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, arrayUnion, GeoPoint } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         
-        // Конфигурация Firebase (ЗАМЕНИТЕ НА ВАШУ)
+        // ⚠️ ВСТАВЬТЕ ВАШИ ДАННЫЕ ИЗ FIREBASE (Project settings -> Your apps)
         const firebaseConfig = {
             apiKey: "AIzaSyAvqd3lQwvRecGNykyBncl-EKc0I5891UA",
-            authDomain: "signal-game-27495.firebaseapp.com",
-            projectId: "signal-game-27495",
+            authDomain: "signal-game-27495.firebaseapp.com",     // пример
+            projectId: "signal-game-27495",                      // ваш projectId
             storageBucket: "signal-game-27495.firebasestorage.app",
             messagingSenderId: "706423536737",
             appId: "1:706423536737:web:040edb44f5574617bb7e20"
@@ -162,41 +136,76 @@
                 userData.name = tg.initDataUnsafe.user.first_name || "Игрок";
             }
         } else {
-            // Для локального теста
-            userData.id = Date.now();
+            // Для теста без Telegram (локально) — генерируем случайный ID
+            userData.id = "test_" + Date.now();
             userData.name = "Тестовый";
         }
         document.getElementById("greeting").innerText = `👋 ${userData.name}`;
         
-        // --- Карта и GPS ---
-        let map = L.map('map').setView([55.751244, 37.618423], 13); // Москва
+        // --- Карта (центр Минск) ---
+        const map = L.map('map').setView([53.9045, 27.5615], 13);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CartoDB'
         }).addTo(map);
         
         let userMarker = null;
         let currentSignalMarkers = [];
-        let selectedSignal = null;
+        let userLocation = null;
         
-        // Функция получения сигналов из Firestore (позже)
-        async function loadSignals() {
-            // Пока тестовые данные
-            const demoSignals = [
-                { id: "sig1", name: "Старый телеком узел", lat: 55.7482, lng: 37.6055, rewardXP: 150, radius: 50 },
-                { id: "sig2", name: "Тайный клуб", lat: 55.7558, lng: 37.6176, rewardXP: 250, radius: 40 }
-            ];
-            demoSignals.forEach(sig => {
-                const marker = L.marker([sig.lat, sig.lng]).addTo(map);
-                marker.bindPopup(`<b>${sig.name}</b><br>+${sig.rewardXP} XP<button class="claim-signal" data-id="${sig.id}">Принять</button>`);
-                marker.on('popupopen', () => {
-                    document.querySelector('.claim-signal')?.addEventListener('click', () => claimSignal(sig.id, sig.rewardXP));
+        // Функция загрузки сигналов из Firestore (коллекция "signals")
+        async function loadSignalsFromFirestore() {
+            try {
+                const signalsRef = collection(db, "signals");
+                const snapshot = await getDocs(signalsRef);
+                snapshot.forEach(docSnap => {
+                    const signal = docSnap.data();
+                    const marker = L.marker([signal.location.latitude, signal.location.longitude]).addTo(map);
+                    const popupContent = `
+                        <b>${signal.name}</b><br>
+                        🎁 +${signal.rewardXP} XP<br>
+                        <button class="claim-btn" data-id="${docSnap.id}" data-xp="${signal.rewardXP}">Принять сигнал</button>
+                    `;
+                    marker.bindPopup(popupContent);
+                    marker.on('popupopen', () => {
+                        const btn = document.querySelector('.claim-btn');
+                        if (btn) {
+                            btn.addEventListener('click', async (e) => {
+                                const signalId = btn.getAttribute('data-id');
+                                const reward = parseInt(btn.getAttribute('data-xp'));
+                                await claimSignal(signalId, reward, signal.location.latitude, signal.location.longitude);
+                            });
+                        }
+                    });
+                    currentSignalMarkers.push(marker);
                 });
-                currentSignalMarkers.push(marker);
-            });
+            } catch (err) {
+                console.error("Ошибка загрузки сигналов:", err);
+            }
         }
         
-        async function claimSignal(signalId, xpReward) {
-            if (!userData.id) return;
+        // Принять сигнал — проверка расстояния + обновление профиля
+        async function claimSignal(signalId, xpReward, signalLat, signalLng) {
+            if (!userLocation) {
+                alert("Не удалось определить ваше местоположение. Включите GPS.");
+                return;
+            }
+            // Расстояние (формула Haversine)
+            const R = 6371e3;
+            const φ1 = userLocation.lat * Math.PI/180;
+            const φ2 = signalLat * Math.PI/180;
+            const Δφ = (signalLat - userLocation.lat) * Math.PI/180;
+            const Δλ = (signalLng - userLocation.lng) * Math.PI/180;
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c;
+            if (distance > 50) { // больше 50 метров
+                alert(`Вы слишком далеко от сигнала (${Math.round(distance)} м). Подойдите ближе.`);
+                return;
+            }
+            
+            // Обновляем пользователя в Firestore
             const userRef = doc(db, "users", userData.id.toString());
             const userSnap = await getDoc(userRef);
             let currentXP = 0, level = 1;
@@ -206,7 +215,7 @@
             }
             const newXP = currentXP + xpReward;
             let newLevel = level;
-            let xpNeeded = level * 1000;
+            const xpNeeded = level * 1000;
             if (newXP >= xpNeeded) {
                 newLevel = level + 1;
             }
@@ -217,38 +226,53 @@
                 signalsTaken: arrayUnion(signalId),
                 lastSeen: new Date()
             }, { merge: true });
-            alert(`Сигнал принят! +${xpReward} XP. Уровень: ${newLevel}`);
-            // удалить маркер
+            
+            alert(`✅ Сигнал принят! +${xpReward} XP. Уровень: ${newLevel}`);
+            // Удаляем маркер сигнала с карты
             const markerToRemove = currentSignalMarkers.find(m => m.getPopup()?.getContent()?.includes(signalId));
             if (markerToRemove) map.removeLayer(markerToRemove);
+            // Также удалить сигнал из Firestore (чтобы не появлялся снова)
+            // await deleteDoc(doc(db, "signals", signalId));  // опционально
         }
         
-        // Геолокация
+        // Геолокация (слежение)
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(
                 (pos) => {
-                    const { latitude, longitude } = pos.coords;
+                    userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                     if (userMarker) map.removeLayer(userMarker);
-                    userMarker = L.marker([latitude, longitude], { icon: L.divIcon({ className: 'custom-div-icon', html: '📍', iconSize: [20,20] }) }).addTo(map);
-                    map.setView([latitude, longitude], 15);
+                    userMarker = L.marker([userLocation.lat, userLocation.lng], {
+                        icon: L.divIcon({ className: 'custom-div-icon', html: '📍', iconSize: [20,20] })
+                    }).addTo(map);
+                    map.setView([userLocation.lat, userLocation.lng], 16);
                 },
-                (err) => console.warn(err),
+                (err) => console.warn("GPS ошибка:", err),
                 { enableHighAccuracy: true }
             );
+        } else {
+            alert("Ваш браузер не поддерживает геолокацию.");
         }
         
-        // Меню (профиль, инвентарь — заглушки)
+        // Загружаем сигналы из Firestore
+        loadSignalsFromFirestore();
+        
+        // Меню
         document.getElementById("menuBtn").addEventListener("click", () => {
             document.getElementById("sideMenu").classList.add("open");
         });
         document.getElementById("closeMenu").addEventListener("click", () => {
             document.getElementById("sideMenu").classList.remove("open");
         });
-        document.getElementById("profileLink").addEventListener("click", () => {
-            alert("Профиль: загрузка из Firebase...");
+        document.getElementById("profileLink").addEventListener("click", async () => {
+            const userRef = doc(db, "users", userData.id.toString());
+            const snap = await getDoc(userRef);
+            if (snap.exists()) {
+                const data = snap.data();
+                alert(`Профиль: ${data.name}\nУровень: ${data.level}\nОпыт: ${data.xp}\nПринято сигналов: ${data.signalsTaken?.length || 0}`);
+            } else {
+                alert("Профиль не найден. Примите первый сигнал, чтобы создать профиль.");
+            }
         });
-        
-        loadSignals();
     </script>
 </head>
 <body>
@@ -262,8 +286,6 @@
         <a href="#">🏆 Рейтинг</a>
         <a href="#">⚙️ Настройки</a>
     </div>
-    
-    <!-- Telegram WebApp скрипт -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </body>
 </html>
