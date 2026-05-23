@@ -63,63 +63,16 @@
             transform: translateX(100%);
             transition: transform 0.3s ease;
         }
-        .detail-screen.active {
-            transform: translateX(0);
-        }
-        .detail-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .detail-header h2 {
-            font-size: 1.6rem;
-        }
-        .close-detail {
-            font-size: 1.8rem;
-            cursor: pointer;
-            background: none;
-            padding: 0;
-            width: 40px;
-            height: 40px;
-        }
-        .detail-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            margin-bottom: 12px;
-        }
-        .detail-address {
-            background: #1e2330;
-            padding: 12px;
-            border-radius: 16px;
-            margin: 12px 0;
-            font-family: monospace;
-        }
-        .detail-info-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 12px 0;
-            color: #8b93b0;
-        }
-        .detail-info-row i {
-            width: 24px;
-        }
-        .nav-button {
-            width: 100%;
-            margin-top: 20px;
-        }
-        .action-buttons {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-        }
-        .action-buttons button {
-            flex: 1;
-        }
+        .detail-screen.active { transform: translateX(0); }
+        .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .detail-header h2 { font-size: 1.6rem; }
+        .close-detail { font-size: 1.8rem; cursor: pointer; background: none; padding: 0; width: 40px; height: 40px; }
+        .detail-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-bottom: 12px; }
+        .detail-address { background: #1e2330; padding: 12px; border-radius: 16px; margin: 12px 0; font-family: monospace; }
+        .detail-info-row { display: flex; align-items: center; gap: 12px; margin: 12px 0; color: #8b93b0; }
+        .detail-info-row i { width: 24px; }
+        .action-buttons { display: flex; gap: 12px; margin-top: 20px; }
+        .action-buttons button { flex: 1; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -131,7 +84,6 @@
         <p>скрытый слой города • urban MMORPG</p>
     </div>
     <div class="content" id="contentArea">
-        <!-- КАРТА -->
         <div id="mapSection" class="section active-section">
             <div class="card">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
@@ -147,8 +99,6 @@
                 </div>
             </div>
         </div>
-        
-        <!-- СИГНАЛЫ С ВКЛАДКАМИ -->
         <div id="signalsSection" class="section">
             <div class="tabs">
                 <button class="tab-btn active" data-tab="active">Активные</button>
@@ -157,14 +107,10 @@
             <div id="activeSignalsList"></div>
             <div id="archiveSignalsList" style="display:none;"></div>
         </div>
-
-        <!-- ИНВЕНТАРЬ -->
         <div id="inventorySection" class="section">
             <div class="card"><h3>📦 ИНВЕНТАРЬ</h3><div id="inventoryItems" class="items-grid"></div></div>
             <div class="card"><h3>🏆 КОЛЛЕКЦИИ</h3><div id="collectionsBlock">🔹 Фрагменты будут открываться после сигналов</div></div>
         </div>
-
-        <!-- ПРОФИЛЬ -->
         <div id="profileSection" class="section">
             <div class="card">
                 <div style="display: flex; justify-content: space-between;"><div><span style="font-size:1.6rem;">👤</span> <strong id="profileUsername">Исследователь</strong></div><div class="faction-tag" id="profileFactionTag">❌ Без фракции</div></div>
@@ -184,8 +130,6 @@
                 <div id="reputationInfo" style="margin-top:12px;"></div>
             </div>
         </div>
-
-        <!-- МАГАЗИН -->
         <div id="shopSection" class="section">
             <div class="card">
                 <h3>💎 ПРЕМИУМ ДОСТУП</h3>
@@ -198,7 +142,6 @@
         </div>
     </div>
 
-    <!-- ДЕТАЛЬНЫЙ ЭКРАН СИГНАЛА -->
     <div id="detailScreen" class="detail-screen">
         <div class="detail-header">
             <h2>Детали сигнала</h2>
@@ -245,7 +188,6 @@
     }
 
     let map, userMarker = null, userLocation = null, currentSignalMarkers = [], unsubscribeSignals = null;
-    let currentDetailSignal = null;
 
     function getDistance(lat1, lon1, lat2, lon2) {
         const R = 6371e3;
@@ -301,7 +243,6 @@
     }
 
     function showDetail(signal) {
-        currentDetailSignal = signal;
         const distance = userLocation ? getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude) : 0;
         const typeText = signal.type?.toUpperCase() || "SIGNAL";
         let typeColor = '#4affb5';
@@ -310,7 +251,7 @@
         else if (signal.type === 'encrypted') typeColor = '#c084fc';
         else if (signal.type === 'black') typeColor = '#ff4d4d';
         
-        const html = `
+        document.getElementById("detailContent").innerHTML = `
             <div class="detail-badge" style="background:${typeColor}20; color:${typeColor}; border:1px solid ${typeColor}">
                 ${typeText} ${signal.type === 'weak' ? '⚡' : (signal.type === 'strong' ? '💪' : (signal.type === 'encrypted' ? '🔒' : '🌑'))}
             </div>
@@ -322,7 +263,7 @@
                 <i class="fas fa-ruler-combined"></i> <span>${Math.round(distance)} м</span>
             </div>
             <div class="detail-info-row">
-                <i class="fas fa-hourglass-half"></i> <span>30 мин (примерно)</span>
+                <i class="fas fa-hourglass-half"></i> <span>30 мин</span>
             </div>
             <div class="detail-info-row">
                 <i class="fas fa-gift"></i> <span>+${signal.rewardXP} XP, ${signal.rewardItem || "предмет"}</span>
@@ -332,7 +273,6 @@
                 <button class="primary" id="scanDetailBtn">📡 Сканировать</button>
             </div>
         `;
-        document.getElementById("detailContent").innerHTML = html;
         document.getElementById("detailScreen").classList.add("active");
         
         document.getElementById("navigateBtn").onclick = () => {
@@ -340,9 +280,7 @@
                 showToast("Не удалось определить ваше местоположение", 2000);
                 return;
             }
-            const lat = signal.location.latitude;
-            const lng = signal.location.longitude;
-            const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`;
+            const url = `https://www.google.com/maps/dir/?api=1&destination=${signal.location.latitude},${signal.location.longitude}&travelmode=walking`;
             window.open(url, '_blank');
         };
         
@@ -445,11 +383,13 @@
         if (unsubscribeSignals) unsubscribeSignals();
         const q = query(collection(db, "signals"), where("usesLeft", ">", 0));
         unsubscribeSignals = onSnapshot(q, (snapshot) => {
+            // Удаляем старые маркеры
             currentSignalMarkers.forEach(m => map.removeLayer(m));
             currentSignalMarkers = [];
             const activeDiv = document.getElementById("activeSignalsList");
             activeDiv.innerHTML = "";
             if (snapshot.empty) activeDiv.innerHTML = `<div class="card">✨ Нет активных сигналов</div>`;
+            
             snapshot.forEach(docSnap => {
                 const signal = { id: docSnap.id, ...docSnap.data() };
                 if (!signal.location?.latitude) return;
@@ -461,47 +401,39 @@
                 
                 // Маркер на карте
                 const marker = L.marker([signal.location.latitude, signal.location.longitude], { icon: getMarkerIcon(signal.type) }).addTo(map);
+                marker.signalData = signal; // сохраняем данные сигнала в маркере
                 marker.bindPopup(`
                     <div style="text-align:center;">
                         <strong>${signal.name}</strong><br>
                         ${Math.round(distance)} м<br>
-                        <button class="popup-detail-btn" data-id="${signal.id}">Подробнее</button>
+                        <button class="popup-detail-btn" data-signal='${JSON.stringify(signal)}'>Подробнее</button>
                     </div>
                 `, { className: 'custom-popup' });
                 marker.on('popupopen', () => {
                     const btn = document.querySelector('.popup-detail-btn');
                     if (btn && !btn.hasListener) {
                         btn.hasListener = true;
-                        btn.addEventListener('click', () => showDetail(signal));
+                        const sig = JSON.parse(btn.getAttribute('data-signal'));
+                        btn.addEventListener('click', () => showDetail(sig));
                     }
                 });
                 currentSignalMarkers.push(marker);
                 
                 // Карточка в списке
-                activeDiv.innerHTML += `
-                    <div class="card signal-card ${signal.type === 'weak' ? 'weak-signal' : (signal.type === 'strong' ? 'rare-signal' : 'ghost-signal')}">
-                        <div><i class="fas ${iconClass}"></i> <strong>${signal.type?.toUpperCase()}</strong> <span style="font-size:0.7rem;">осталось: ${signal.usesLeft}</span></div>
-                        <div>📍 ${signal.name}</div>
-                        <div>📏 ${Math.round(distance)} м</div>
-                        <div style="display:flex; justify-content: space-between; margin-top:12px;">
-                            <span>🎁 +${signal.rewardXP} XP, ${signal.rewardItem}</span>
-                            <button class="primary detail-list-btn" data-id="${signal.id}">Детали</button>
-                        </div>
+                const cardDiv = document.createElement('div');
+                cardDiv.className = `card signal-card ${signal.type === 'weak' ? 'weak-signal' : (signal.type === 'strong' ? 'rare-signal' : 'ghost-signal')}`;
+                cardDiv.innerHTML = `
+                    <div><i class="fas ${iconClass}"></i> <strong>${signal.type?.toUpperCase()}</strong> <span style="font-size:0.7rem;">осталось: ${signal.usesLeft}</span></div>
+                    <div>📍 ${signal.name}</div>
+                    <div>📏 ${Math.round(distance)} м</div>
+                    <div style="display:flex; justify-content: space-between; margin-top:12px;">
+                        <span>🎁 +${signal.rewardXP} XP, ${signal.rewardItem}</span>
+                        <button class="primary detail-list-btn">Детали</button>
                     </div>
                 `;
-            });
-            document.querySelectorAll(".detail-list-btn").forEach(btn => {
-                if (btn.hasListener) return;
-                btn.hasListener = true;
-                btn.addEventListener("click", () => {
-                    const id = btn.getAttribute("data-id");
-                    const signal = currentSignalMarkers.find(m => m.signalData?.id === id)?.signalData;
-                    if (signal) showDetail(signal);
-                });
-            });
-            // Сохраняем данные сигналов в маркерах для быстрого доступа
-            currentSignalMarkers.forEach((m, idx) => {
-                m.signalData = snapshot.docs[idx]?.data();
+                const btn = cardDiv.querySelector('.detail-list-btn');
+                btn.addEventListener('click', () => showDetail(signal));
+                activeDiv.appendChild(cardDiv);
             });
         });
     }
