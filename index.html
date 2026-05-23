@@ -48,6 +48,86 @@
         .custom-marker-black { background: #ff4d4d; }
         .custom-popup .leaflet-popup-content-wrapper { background: rgba(15, 17, 23, 0.95); backdrop-filter: blur(12px); border-radius: 20px; border: 1px solid rgba(74, 255, 181, 0.3); color: #eef2ff; }
         .custom-popup .leaflet-popup-tip { background: rgba(15, 17, 23, 0.95); }
+
+        /* Стили для детального экрана сигнала */
+        .detail-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #0f1117;
+            z-index: 200;
+            overflow-y: auto;
+            padding: 20px;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        .detail-screen.active {
+            transform: translateX(0);
+        }
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .detail-header h2 {
+            font-size: 1.6rem;
+        }
+        .close-detail {
+            font-size: 1.8rem;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+        }
+        .detail-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        .detail-address {
+            background: #1e2330;
+            padding: 12px;
+            border-radius: 16px;
+            margin: 12px 0;
+            font-family: monospace;
+        }
+        .nav-button {
+            width: 100%;
+            background: #4affb5;
+            color: #0a0c12;
+            margin-top: 20px;
+        }
+        .scan-area {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .scan-frame {
+            width: 200px;
+            height: 200px;
+            border: 2px solid #4affb5;
+            border-radius: 20px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a1e2a;
+        }
+        .ticket {
+            background: linear-gradient(135deg, #1a1e2a, #0a0c12);
+            border: 1px solid #ffd966;
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .ticket h3 { color: #ffd966; margin-bottom: 10px; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -71,7 +151,7 @@
                     <div class="locate-btn" id="locateMe">🎯</div>
                 </div>
                 <div style="margin-top: 12px; font-size:0.75rem; color:#6c7a9e;">
-                    🔍 На карте отмечены активные сигналы. Нажмите на маркер, чтобы сканировать.
+                    🔍 На карте отмечены активные сигналы. Нажмите на маркер, чтобы открыть детали.
                 </div>
             </div>
         </div>
@@ -126,6 +206,15 @@
         </div>
     </div>
 
+    <!-- ДЕТАЛЬНЫЙ ЭКРАН СИГНАЛА -->
+    <div id="detailScreen" class="detail-screen">
+        <div class="detail-header">
+            <h2 id="detailTitle">Сигнал</h2>
+            <button class="close-detail" id="closeDetailBtn">✖️</button>
+        </div>
+        <div id="detailContent"></div>
+    </div>
+
     <div class="bottom-nav">
         <div class="nav-item" data-nav="map">🗺️<span>Карта</span></div>
         <div class="nav-item" data-nav="signals">📡<span>Сигналы</span></div>
@@ -164,6 +253,7 @@
     }
 
     let map, userMarker = null, userLocation = null, currentSignalMarkers = [], unsubscribeSignals = null;
+    let currentSignalDetail = null; // храним текущий выбранный сигнал для деталей
 
     function getDistance(lat1, lon1, lat2, lon2) {
         const R = 6371e3;
@@ -218,107 +308,122 @@
         });
     }
 
-    async function loadArchive() {
-        const userRef = doc(db, "users", userData.id.toString());
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) {
-            document.getElementById("archiveSignalsList").innerHTML = `<div class="card">Вы пока не приняли ни одного сигнала.</div>`;
-            return;
-        }
-        const takenIds = userSnap.data().signalsTaken || [];
-        if (takenIds.length === 0) {
-            document.getElementById("archiveSignalsList").innerHTML = `<div class="card">Вы пока не приняли ни одного сигнала.</div>`;
-            return;
-        }
-        const signalsPromises = takenIds.map(id => getDoc(doc(db, "signals", id)));
-        const signalsSnaps = await Promise.all(signalsPromises);
-        let html = '';
-        signalsSnaps.forEach(snap => {
-            if (snap.exists()) {
-                const s = snap.data();
-                let iconClass = 'fa-signal';
-                if (s.type === 'strong') iconClass = 'fa-bolt';
-                else if (s.type === 'encrypted') iconClass = 'fa-lock';
-                else if (s.type === 'black') iconClass = 'fa-skull';
-                html += `
-                    <div class="card signal-card ${s.type === 'weak' ? 'weak-signal' : (s.type === 'strong' ? 'rare-signal' : 'ghost-signal')}">
-                        <div><i class="fas ${iconClass}" style="margin-right:6px;"></i> <strong>${s.name}</strong> (${s.type?.toUpperCase()})</div>
-                        <div>🎁 +${s.rewardXP} XP, ${s.rewardItem || 'предмет'}</div>
-                        <div>📅 Активирован</div>
-                    </div>
-                `;
-            }
-        });
-        document.getElementById("archiveSignalsList").innerHTML = html;
+    // Функция открытия детального экрана
+    function showDetail(signal) {
+        currentSignalDetail = signal;
+        const detailDiv = document.getElementById("detailContent");
+        const distance = userLocation ? getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude) : 0;
+        const typeText = signal.type?.toUpperCase() || "SIGNAL";
+        let typeColor = '#4affb5';
+        if (signal.type === 'weak') typeColor = '#6c8eff';
+        else if (signal.type === 'strong') typeColor = '#ffb347';
+        else if (signal.type === 'encrypted') typeColor = '#c084fc';
+        else if (signal.type === 'black') typeColor = '#ff4d4d';
+        
+        detailDiv.innerHTML = `
+            <div class="detail-badge" style="background:${typeColor}20; color:${typeColor}; border:1px solid ${typeColor}">
+                ${typeText} ${signal.type === 'weak' ? '⚡' : (signal.type === 'strong' ? '💪' : (signal.type === 'encrypted' ? '🔒' : '🌑'))}
+            </div>
+            <p>${signal.description || "Сигнал передаёт слабо зашифрованные данные. Источник где-то рядом."}</p>
+            <div class="detail-address">
+                📍 ${signal.address || "Координаты: " + signal.location.latitude.toFixed(5) + ", " + signal.location.longitude.toFixed(5)}
+            </div>
+            <div>📏 Расстояние: <strong>${Math.round(distance)} м</strong></div>
+            <div>🎁 Награда: +${signal.rewardXP} XP, ${signal.rewardItem || "предмет"}</div>
+            <div>🔄 Осталось активаций: ${signal.usesLeft}</div>
+            <button class="primary nav-button" id="startNavigationBtn">🧭 Начать слежение</button>
+        `;
+        document.getElementById("detailScreen").classList.add("active");
+        
+        document.getElementById("startNavigationBtn").onclick = () => startNavigation(signal);
     }
 
-    function subscribeSignals() {
-        if (unsubscribeSignals) unsubscribeSignals();
-        const q = query(collection(db, "signals"), where("usesLeft", ">", 0));
-        unsubscribeSignals = onSnapshot(q, (snapshot) => {
-            currentSignalMarkers.forEach(m => map.removeLayer(m));
-            currentSignalMarkers = [];
-            const activeDiv = document.getElementById("activeSignalsList");
-            activeDiv.innerHTML = "";
-            if (snapshot.empty) activeDiv.innerHTML = `<div class="card">✨ Нет активных сигналов</div>`;
-            snapshot.forEach(docSnap => {
-                const signal = { id: docSnap.id, ...docSnap.data() };
-                if (!signal.location?.latitude) return;
-                let distance = userLocation ? getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude) : 0;
-                let iconClass = 'fa-signal';
-                if (signal.type === 'strong') iconClass = 'fa-bolt';
-                else if (signal.type === 'encrypted') iconClass = 'fa-lock';
-                else if (signal.type === 'black') iconClass = 'fa-skull';
-                const popupContent = `
-                    <div style="min-width:180px; text-align:center;">
-                        <strong>${signal.name}</strong><br>
-                        <span style="background:${signal.type === 'weak' ? '#6c8eff' : (signal.type === 'strong' ? '#ffb347' : (signal.type === 'encrypted' ? '#c084fc' : '#ff4d4d'))}; padding:2px 12px; border-radius:20px;">${signal.type?.toUpperCase()}</span><br>
-                        📍 ${Math.round(distance)} м<br>
-                        🎁 +${signal.rewardXP} XP, ${signal.rewardItem}<br>
-                        🔄 осталось: ${signal.usesLeft}<br>
-                        <button class="claim-map-btn" data-id="${signal.id}" data-xp="${signal.rewardXP}" data-lat="${signal.location.latitude}" data-lng="${signal.location.longitude}" style="margin-top:8px; background:#4affb5; color:#0a0c12;">Сканировать</button>
+    function startNavigation(signal) {
+        // Открываем навигацию в зависимости от платформы
+        const lat = signal.location.latitude;
+        const lng = signal.location.longitude;
+        const url = `https://yandex.ru/maps/?pt=${lng},${lat}&z=18&l=map`;
+        // Для мобильных устройств можно использовать другой сервис
+        window.open(url, '_blank');
+        showToast("Открыта навигация. Дойдите до точки и нажмите 'Сканировать'", 3000);
+        // После открытия навигации предлагаем сканирование
+        setTimeout(() => {
+            if (confirm("Вы дошли до места? Проверить расстояние и получить доступ?")) {
+                checkProximityAndScan();
+            }
+        }, 5000);
+    }
+    
+    async function checkProximityAndScan() {
+        if (!currentSignalDetail) return;
+        if (!userLocation) {
+            showToast("Не удалось определить ваше местоположение", 2000);
+            return;
+        }
+        const distance = getDistance(userLocation.lat, userLocation.lng, currentSignalDetail.location.latitude, currentSignalDetail.location.longitude);
+        if (distance <= 50) {
+            // Показываем экран сканирования (имитация камеры)
+            document.getElementById("detailContent").innerHTML = `
+                <div class="scan-area">
+                    <div class="scan-frame">
+                        <i class="fas fa-camera" style="font-size: 48px; color: #4affb5;"></i>
                     </div>
-                `;
-                const marker = L.marker([signal.location.latitude, signal.location.longitude], { icon: getMarkerIcon(signal.type) }).addTo(map);
-                marker.bindPopup(popupContent, { className: 'custom-popup' });
-                marker.on('popupopen', () => {
-                    const btn = document.querySelector('.claim-map-btn');
-                    if (btn && !btn.hasListener) {
-                        btn.hasListener = true;
-                        btn.addEventListener('click', async (e) => {
-                            const id = btn.dataset.id, xp = parseInt(btn.dataset.xp), lat = parseFloat(btn.dataset.lat), lng = parseFloat(btn.dataset.lng);
-                            await claimSignal(id, xp, lat, lng);
-                        });
-                    }
-                });
-                currentSignalMarkers.push(marker);
-                activeDiv.innerHTML += `
-                    <div class="card signal-card ${signal.type === 'weak' ? 'weak-signal' : (signal.type === 'strong' ? 'rare-signal' : 'ghost-signal')}">
-                        <div><i class="fas ${iconClass}"></i> <strong>${signal.type?.toUpperCase()}</strong> <span style="font-size:0.7rem;">осталось: ${signal.usesLeft}</span></div>
-                        <div>📍 ${signal.name}</div>
-                        <div>📏 ${Math.round(distance)} м</div>
-                        <div style="display:flex; justify-content: space-between; margin-top:12px;">
-                            <span>🎁 +${signal.rewardXP} XP, ${signal.rewardItem}</span>
-                            <button class="primary accept-signal-btn" data-id="${signal.id}" data-xp="${signal.rewardXP}" data-lat="${signal.location.latitude}" data-lng="${signal.location.longitude}">ПРИНЯТЬ</button>
-                        </div>
-                    </div>
-                `;
-            });
-            document.querySelectorAll(".accept-signal-btn").forEach(btn => {
-                if (btn.hasListener) return;
-                btn.hasListener = true;
-                btn.addEventListener("click", async (e) => {
-                    const id = btn.dataset.id, xp = parseInt(btn.dataset.xp), lat = parseFloat(btn.dataset.lat), lng = parseFloat(btn.dataset.lng);
-                    await claimSignal(id, xp, lat, lng);
-                });
-            });
-        });
+                    <button class="primary" id="scanBtn">📸 Отсканировать QR / Подтвердить</button>
+                </div>
+            `;
+            document.getElementById("scanBtn").onclick = async () => {
+                // Имитация успешного сканирования -> показываем билет
+                await claimSignal(currentSignalDetail.id, currentSignalDetail.rewardXP, currentSignalDetail.location.latitude, currentSignalDetail.location.longitude);
+                // После успешного принятия показываем билет
+                showTicket(currentSignalDetail);
+            };
+        } else {
+            showToast(`Вы слишком далеко (${Math.round(distance)} м). Подойдите ближе.`, 3000);
+        }
+    }
+    
+    function showTicket(signal) {
+        const ticketHTML = `
+            <div class="ticket">
+                <h3>🎫 ДОСТУП ПОЛУЧЕН</h3>
+                <h2>ZARA SECRET DROP ACCESS</h2>
+                <p>Сегодня 19:00 - 22:00<br>Тверская, 16</p>
+                <p>Только для игроков SIGNAL</p>
+                <button class="primary" id="closeTicketBtn">Показать билет</button>
+            </div>
+        `;
+        document.getElementById("detailContent").innerHTML = ticketHTML;
+        document.getElementById("closeTicketBtn").onclick = () => {
+            document.getElementById("detailScreen").classList.remove("active");
+            loadUserProfile(); // обновить инвентарь
+        };
+        // Также добавим предмет "Билет ZARA" в инвентарь
+        addTicketToInventory();
+    }
+    
+    async function addTicketToInventory() {
+        const userRef = doc(db, "users", userData.id.toString());
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+            let inventory = userSnap.data().inventory || {};
+            inventory["Билет ZARA"] = (inventory["Билет ZARA"] || 0) + 1;
+            await updateDoc(userRef, { inventory: inventory });
+        }
     }
 
     async function claimSignal(signalId, rewardXP, signalLat, signalLng) {
-        if (!userLocation) { showToast("Включите геолокацию", 2000); return; }
+        // Вся логика принятия (транзакция) уже есть в предыдущем коде, но здесь мы вызовем её
+        // Чтобы не дублировать, просто вызовем существующую функцию
+        await originalClaimSignal(signalId, rewardXP, signalLat, signalLng);
+    }
+    
+    // Сохраним ссылку на оригинальную функцию, но переопределим для интеграции с UI
+    let originalClaimSignal;
+    
+    async function internalClaimSignal(signalId, rewardXP, signalLat, signalLng) {
+        if (!userLocation) { showToast("Включите геолокацию", 2000); return false; }
         const distance = getDistance(userLocation.lat, userLocation.lng, signalLat, signalLng);
-        if (distance > 50) { showToast(`Вы слишком далеко (${Math.round(distance)} м). Подойдите ближе.`, 2000); return; }
+        if (distance > 50) { showToast(`Вы слишком далеко (${Math.round(distance)} м). Подойдите ближе.`, 2000); return false; }
         try {
             await runTransaction(db, async (transaction) => {
                 const signalRef = doc(db, "signals", signalId);
@@ -356,9 +461,108 @@
             showToast(`✅ Сигнал принят! +${rewardXP} XP`, 2000);
             loadUserProfile();
             loadRanking();
+            return true;
         } catch (error) {
             showToast(error.message, 2000);
+            return false;
         }
+    }
+    
+    // Переопределяем claimSignal в глобальной области
+    window.claimSignal = internalClaimSignal;
+    originalClaimSignal = internalClaimSignal;
+    
+    async function loadArchive() {
+        const userRef = doc(db, "users", userData.id.toString());
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+            document.getElementById("archiveSignalsList").innerHTML = `<div class="card">Вы пока не приняли ни одного сигнала.</div>`;
+            return;
+        }
+        const takenIds = userSnap.data().signalsTaken || [];
+        if (takenIds.length === 0) {
+            document.getElementById("archiveSignalsList").innerHTML = `<div class="card">Вы пока не приняли ни одного сигнала.</div>`;
+            return;
+        }
+        const signalsPromises = takenIds.map(id => getDoc(doc(db, "signals", id)));
+        const signalsSnaps = await Promise.all(signalsPromises);
+        let html = '';
+        signalsSnaps.forEach(snap => {
+            if (snap.exists()) {
+                const s = snap.data();
+                let iconClass = 'fa-signal';
+                if (s.type === 'strong') iconClass = 'fa-bolt';
+                else if (s.type === 'encrypted') iconClass = 'fa-lock';
+                else if (s.type === 'black') iconClass = 'fa-skull';
+                html += `
+                    <div class="card signal-card ${s.type === 'weak' ? 'weak-signal' : (s.type === 'strong' ? 'rare-signal' : 'ghost-signal')}">
+                        <div><i class="fas ${iconClass}"></i> <strong>${s.name}</strong> (${s.type?.toUpperCase()})</div>
+                        <div>🎁 +${s.rewardXP} XP, ${s.rewardItem || 'предмет'}</div>
+                        <div>📅 Активирован</div>
+                    </div>
+                `;
+            }
+        });
+        document.getElementById("archiveSignalsList").innerHTML = html;
+    }
+
+    function subscribeSignals() {
+        if (unsubscribeSignals) unsubscribeSignals();
+        const q = query(collection(db, "signals"), where("usesLeft", ">", 0));
+        unsubscribeSignals = onSnapshot(q, (snapshot) => {
+            currentSignalMarkers.forEach(m => map.removeLayer(m));
+            currentSignalMarkers = [];
+            const activeDiv = document.getElementById("activeSignalsList");
+            activeDiv.innerHTML = "";
+            if (snapshot.empty) activeDiv.innerHTML = `<div class="card">✨ Нет активных сигналов</div>`;
+            snapshot.forEach(docSnap => {
+                const signal = { id: docSnap.id, ...docSnap.data() };
+                if (!signal.location?.latitude) return;
+                let distance = userLocation ? getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude) : 0;
+                let iconClass = 'fa-signal';
+                if (signal.type === 'strong') iconClass = 'fa-bolt';
+                else if (signal.type === 'encrypted') iconClass = 'fa-lock';
+                else if (signal.type === 'black') iconClass = 'fa-skull';
+                
+                const marker = L.marker([signal.location.latitude, signal.location.longitude], { icon: getMarkerIcon(signal.type) }).addTo(map);
+                marker.bindPopup(`
+                    <div style="text-align:center;">
+                        <strong>${signal.name}</strong><br>
+                        ${Math.round(distance)} м<br>
+                        <button class="popup-detail-btn" data-id="${signal.id}">Подробнее</button>
+                    </div>
+                `, { className: 'custom-popup' });
+                marker.on('popupopen', () => {
+                    const btn = document.querySelector('.popup-detail-btn');
+                    if (btn && !btn.hasListener) {
+                        btn.hasListener = true;
+                        btn.addEventListener('click', () => showDetail(signal));
+                    }
+                });
+                currentSignalMarkers.push(marker);
+                
+                // Список сигналов
+                activeDiv.innerHTML += `
+                    <div class="card signal-card ${signal.type === 'weak' ? 'weak-signal' : (signal.type === 'strong' ? 'rare-signal' : 'ghost-signal')}">
+                        <div><i class="fas ${iconClass}"></i> <strong>${signal.type?.toUpperCase()}</strong> <span style="font-size:0.7rem;">осталось: ${signal.usesLeft}</span></div>
+                        <div>📍 ${signal.name}</div>
+                        <div>📏 ${Math.round(distance)} м</div>
+                        <div style="display:flex; justify-content: space-between; margin-top:12px;">
+                            <span>🎁 +${signal.rewardXP} XP, ${signal.rewardItem}</span>
+                            <button class="primary detail-from-list-btn" data-signal='${JSON.stringify(signal)}'>Детали</button>
+                        </div>
+                    </div>
+                `;
+            });
+            document.querySelectorAll(".detail-from-list-btn").forEach(btn => {
+                if (btn.hasListener) return;
+                btn.hasListener = true;
+                btn.addEventListener("click", () => {
+                    const signal = JSON.parse(btn.getAttribute('data-signal'));
+                    showDetail(signal);
+                });
+            });
+        });
     }
 
     async function loadUserProfile() {
@@ -453,6 +657,9 @@
                     loadArchive();
                 }
             });
+        });
+        document.getElementById("closeDetailBtn").addEventListener("click", () => {
+            document.getElementById("detailScreen").classList.remove("active");
         });
     }
 
