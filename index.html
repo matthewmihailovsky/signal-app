@@ -424,6 +424,16 @@
         return R * c;
     }
 
+    function showToast(msg, duration = 2000) {
+        let existing = document.querySelector(".toast-msg");
+        if (existing) existing.remove();
+        let toast = document.createElement("div");
+        toast.className = "toast-msg";
+        toast.innerText = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), duration);
+    }
+
     // Инициализация карты (центр Минск)
     function initMap() {
         map = L.map('map').setView([53.9045, 27.5615], 13);
@@ -470,7 +480,6 @@
                 const marker = L.marker([signal.location.latitude, signal.location.longitude]).addTo(map);
                 marker.signalData = signal;
                 let distance = userLocation ? getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude) : 0;
-                const typeClass = signal.type || "weak";
                 const popupContent = `
                     <div style="min-width:180px">
                         <strong>${signal.name}</strong><br>
@@ -528,7 +537,7 @@
         });
     }
 
-    // Принять сигнал (транзакция, проверка расстояния)
+    // ИСПРАВЛЕННАЯ ТРАНЗАКЦИЯ (все чтения до всех записей)
     async function claimSignal(signalId, rewardXP, signalLat, signalLng) {
         if (!userLocation) {
             showToast("Включите геолокацию", 2000);
@@ -541,15 +550,18 @@
         }
         try {
             await runTransaction(db, async (transaction) => {
+                // 1. ВСЕ ЧТЕНИЯ СНАЧАЛА
                 const signalRef = doc(db, "signals", signalId);
                 const signalSnap = await transaction.get(signalRef);
                 if (!signalSnap.exists() || signalSnap.data().claimed === true) {
                     throw new Error("Сигнал уже активирован");
                 }
-                transaction.update(signalRef, { claimed: true });
-
                 const userRef = doc(db, "users", userData.id.toString());
                 const userSnap = await transaction.get(userRef);
+                
+                // 2. ТЕПЕРЬ ВСЕ ЗАПИСИ (обновления, установки)
+                transaction.update(signalRef, { claimed: true });
+                
                 let currentXP = userSnap.exists() ? userSnap.data().xp : 0;
                 let level = userSnap.exists() ? userSnap.data().level : 1;
                 let newXP = currentXP + rewardXP;
@@ -718,16 +730,6 @@
             });
         });
         document.querySelector(".nav-item[data-nav='map']").classList.add("active");
-    }
-
-    function showToast(msg, duration = 2000) {
-        let existing = document.querySelector(".toast-msg");
-        if (existing) existing.remove();
-        let toast = document.createElement("div");
-        toast.className = "toast-msg";
-        toast.innerText = msg;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), duration);
     }
 
     // Запуск
