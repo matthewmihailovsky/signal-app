@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SIGNAL — скрытый слой Минска</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #0a0c12; font-family: 'Inter', system-ui, sans-serif; color: #eef2ff; overflow-x: hidden; }
@@ -15,21 +16,10 @@
         .card { background: #171a23; border-radius: 28px; padding: 16px; margin-bottom: 18px; border: 1px solid rgba(255,255,255,0.05); }
         #mapContainer { height: 500px; border-radius: 28px; overflow: hidden; margin-bottom: 16px; position: relative; }
         #map { height: 100%; width: 100%; }
-        .locate-btn {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(8px);
-            border-radius: 50%;
-            padding: 10px;
-            cursor: pointer;
-            border: 1px solid rgba(74,255,181,0.5);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            font-size: 1.2rem;
-        }
-        .locate-btn:active { transform: scale(0.95); }
+        .locate-btn { position: absolute; bottom: 20px; right: 20px; z-index: 1000; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); border-radius: 50%; padding: 10px; cursor: pointer; border: 1px solid rgba(74,255,181,0.5); }
+        .tabs { display: flex; gap: 16px; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
+        .tab-btn { background: none; padding: 8px 16px; border-radius: 40px; font-weight: 600; }
+        .tab-btn.active { background: #4affb5; color: #0a0c12; }
         .signal-card { background: linear-gradient(135deg,#1a1e2a,#12151e); border-left: 3px solid #4affb5; margin-bottom: 12px; padding: 12px; border-radius: 16px; }
         .weak-signal { border-left-color: #6c8eff; }
         .rare-signal { border-left-color: #ffb347; }
@@ -51,14 +41,13 @@
         .shop-item { display: flex; justify-content: space-between; align-items: center; background: #1a1e28; margin-bottom: 12px; padding: 12px 16px; border-radius: 24px; }
         .price { color: #ffd966; font-weight: bold; }
         .faction-tag { background: #1f2a3a; border-radius: 40px; padding: 6px 12px; display: inline-block; font-size: 0.8rem; }
-        .custom-marker { background: rgba(74, 255, 181, 0.9); width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(74, 255, 181, 0.8); transition: transform 0.2s; }
-        .custom-marker-weak { background: #6c8eff; box-shadow: 0 0 10px #6c8eff; }
-        .custom-marker-strong { background: #ffb347; box-shadow: 0 0 10px #ffb347; }
-        .custom-marker-encrypted { background: #c084fc; box-shadow: 0 0 10px #c084fc; }
-        .custom-marker-black { background: #ff4d4d; box-shadow: 0 0 10px #ff4d4d; }
-        .custom-popup .leaflet-popup-content-wrapper { background: rgba(15, 17, 23, 0.95); backdrop-filter: blur(12px); border-radius: 20px; border: 1px solid rgba(74, 255, 181, 0.3); color: #eef2ff; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
-        .custom-popup .leaflet-popup-tip { background: rgba(15, 17, 23, 0.95); border-top: 1px solid rgba(74, 255, 181, 0.3); }
-        .custom-popup .leaflet-popup-close-button { color: #eef2ff; font-size: 18px; }
+        .custom-marker { background: rgba(74, 255, 181, 0.9); width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(74, 255, 181, 0.8); }
+        .custom-marker-weak { background: #6c8eff; }
+        .custom-marker-strong { background: #ffb347; }
+        .custom-marker-encrypted { background: #c084fc; }
+        .custom-marker-black { background: #ff4d4d; }
+        .custom-popup .leaflet-popup-content-wrapper { background: rgba(15, 17, 23, 0.95); backdrop-filter: blur(12px); border-radius: 20px; border: 1px solid rgba(74, 255, 181, 0.3); color: #eef2ff; }
+        .custom-popup .leaflet-popup-tip { background: rgba(15, 17, 23, 0.95); }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -70,6 +59,7 @@
         <p>скрытый слой города • urban MMORPG</p>
     </div>
     <div class="content" id="contentArea">
+        <!-- КАРТА -->
         <div id="mapSection" class="section active-section">
             <div class="card">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
@@ -85,11 +75,24 @@
                 </div>
             </div>
         </div>
-        <div id="signalsSection" class="section"><div id="signalsList"></div></div>
+        
+        <!-- СИГНАЛЫ С ВКЛАДКАМИ -->
+        <div id="signalsSection" class="section">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="active">Активные</button>
+                <button class="tab-btn" data-tab="archive">Архив</button>
+            </div>
+            <div id="activeSignalsList"></div>
+            <div id="archiveSignalsList" style="display:none;"></div>
+        </div>
+
+        <!-- ИНВЕНТАРЬ -->
         <div id="inventorySection" class="section">
             <div class="card"><h3>📦 ИНВЕНТАРЬ</h3><div id="inventoryItems" class="items-grid"></div></div>
             <div class="card"><h3>🏆 КОЛЛЕКЦИИ</h3><div id="collectionsBlock">🔹 Фрагменты будут открываться после сигналов</div></div>
         </div>
+
+        <!-- ПРОФИЛЬ -->
         <div id="profileSection" class="section">
             <div class="card">
                 <div style="display: flex; justify-content: space-between;"><div><span style="font-size:1.6rem;">👤</span> <strong id="profileUsername">Исследователь</strong></div><div class="faction-tag" id="profileFactionTag">❌ Без фракции</div></div>
@@ -109,6 +112,8 @@
                 <div id="reputationInfo" style="margin-top:12px;"></div>
             </div>
         </div>
+
+        <!-- МАГАЗИН -->
         <div id="shopSection" class="section">
             <div class="card">
                 <h3>💎 ПРЕМИУМ ДОСТУП</h3>
@@ -120,6 +125,7 @@
             <div class="card"><h3>🎫 БРЕНДИРОВАННЫЕ СОБЫТИЯ</h3><p>⚡ Signal от ZARA: эксклюзивный доступ к капсуле (скоро)</p><p>🎧 Night Rave в Парке Горького — сигнал только для участников фракции</p></div>
         </div>
     </div>
+
     <div class="bottom-nav">
         <div class="nav-item" data-nav="map">🗺️<span>Карта</span></div>
         <div class="nav-item" data-nav="signals">📡<span>Сигналы</span></div>
@@ -183,7 +189,6 @@
         else if (signalType === "strong") colorClass = "custom-marker custom-marker-strong";
         else if (signalType === "encrypted") colorClass = "custom-marker custom-marker-encrypted";
         else if (signalType === "black") colorClass = "custom-marker custom-marker-black";
-        else colorClass = "custom-marker";
         return L.divIcon({ className: colorClass, iconSize: [24, 24], popupAnchor: [0, -12] });
     }
 
@@ -191,13 +196,10 @@
         map = L.map('map').setView([53.9045, 27.5615], 13);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CartoDB',
-            subdomains: 'abcd',
-            minZoom: 0,
-            maxZoom: 20
+            subdomains: 'abcd'
         }).addTo(map);
-
         if (navigator.geolocation) {
-            let firstLocation = true;
+            let first = true;
             navigator.geolocation.watchPosition(
                 (pos) => {
                     userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -205,19 +207,49 @@
                     userMarker = L.marker([userLocation.lat, userLocation.lng], {
                         icon: L.divIcon({ className: 'user-marker', html: '📍', iconSize: [24,24] })
                     }).addTo(map);
-                    if (firstLocation) {
-                        map.setView([userLocation.lat, userLocation.lng], 15);
-                        firstLocation = false;
-                    }
+                    if (first) { map.setView([userLocation.lat, userLocation.lng], 15); first = false; }
                 },
                 (err) => console.warn(err),
                 { enableHighAccuracy: true }
             );
         }
-
         document.getElementById("locateMe")?.addEventListener("click", () => {
             if (userLocation) map.setView([userLocation.lat, userLocation.lng], 15);
         });
+    }
+
+    async function loadArchive() {
+        const userRef = doc(db, "users", userData.id.toString());
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+            document.getElementById("archiveSignalsList").innerHTML = `<div class="card">Вы пока не приняли ни одного сигнала.</div>`;
+            return;
+        }
+        const takenIds = userSnap.data().signalsTaken || [];
+        if (takenIds.length === 0) {
+            document.getElementById("archiveSignalsList").innerHTML = `<div class="card">Вы пока не приняли ни одного сигнала.</div>`;
+            return;
+        }
+        const signalsPromises = takenIds.map(id => getDoc(doc(db, "signals", id)));
+        const signalsSnaps = await Promise.all(signalsPromises);
+        let html = '';
+        signalsSnaps.forEach(snap => {
+            if (snap.exists()) {
+                const s = snap.data();
+                let iconClass = 'fa-signal';
+                if (s.type === 'strong') iconClass = 'fa-bolt';
+                else if (s.type === 'encrypted') iconClass = 'fa-lock';
+                else if (s.type === 'black') iconClass = 'fa-skull';
+                html += `
+                    <div class="card signal-card ${s.type === 'weak' ? 'weak-signal' : (s.type === 'strong' ? 'rare-signal' : 'ghost-signal')}">
+                        <div><i class="fas ${iconClass}" style="margin-right:6px;"></i> <strong>${s.name}</strong> (${s.type?.toUpperCase()})</div>
+                        <div>🎁 +${s.rewardXP} XP, ${s.rewardItem || 'предмет'}</div>
+                        <div>📅 Активирован</div>
+                    </div>
+                `;
+            }
+        });
+        document.getElementById("archiveSignalsList").innerHTML = html;
     }
 
     function subscribeSignals() {
@@ -226,21 +258,25 @@
         unsubscribeSignals = onSnapshot(q, (snapshot) => {
             currentSignalMarkers.forEach(m => map.removeLayer(m));
             currentSignalMarkers = [];
-            const signalsListDiv = document.getElementById("signalsList");
-            signalsListDiv.innerHTML = "";
-            if (snapshot.empty) signalsListDiv.innerHTML = `<div class="card">✨ Все сигналы расшифрованы. Жди новых...</div>`;
+            const activeDiv = document.getElementById("activeSignalsList");
+            activeDiv.innerHTML = "";
+            if (snapshot.empty) activeDiv.innerHTML = `<div class="card">✨ Нет активных сигналов</div>`;
             snapshot.forEach(docSnap => {
                 const signal = { id: docSnap.id, ...docSnap.data() };
                 if (!signal.location?.latitude) return;
                 let distance = userLocation ? getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude) : 0;
+                let iconClass = 'fa-signal';
+                if (signal.type === 'strong') iconClass = 'fa-bolt';
+                else if (signal.type === 'encrypted') iconClass = 'fa-lock';
+                else if (signal.type === 'black') iconClass = 'fa-skull';
                 const popupContent = `
                     <div style="min-width:180px; text-align:center;">
-                        <strong style="font-size:1rem;">${signal.name}</strong><br>
-                        <span style="background:${signal.type === 'weak' ? '#6c8eff' : (signal.type === 'strong' ? '#ffb347' : (signal.type === 'encrypted' ? '#c084fc' : '#ff4d4d'))}; padding:2px 12px; border-radius:20px; font-size:0.7rem;">${signal.type?.toUpperCase() || "SIGNAL"}</span><br>
+                        <strong>${signal.name}</strong><br>
+                        <span style="background:${signal.type === 'weak' ? '#6c8eff' : (signal.type === 'strong' ? '#ffb347' : (signal.type === 'encrypted' ? '#c084fc' : '#ff4d4d'))}; padding:2px 12px; border-radius:20px;">${signal.type?.toUpperCase()}</span><br>
                         📍 ${Math.round(distance)} м<br>
-                        🎁 +${signal.rewardXP} XP, ${signal.rewardItem || "предмет"}<br>
+                        🎁 +${signal.rewardXP} XP, ${signal.rewardItem}<br>
                         🔄 осталось: ${signal.usesLeft}<br>
-                        <button class="claim-map-btn" data-id="${signal.id}" data-xp="${signal.rewardXP}" data-lat="${signal.location.latitude}" data-lng="${signal.location.longitude}" style="margin-top:8px; background:#4affb5; color:#0a0c12; border:none; padding:6px 12px; border-radius:30px;">Сканировать</button>
+                        <button class="claim-map-btn" data-id="${signal.id}" data-xp="${signal.rewardXP}" data-lat="${signal.location.latitude}" data-lng="${signal.location.longitude}" style="margin-top:8px; background:#4affb5; color:#0a0c12;">Сканировать</button>
                     </div>
                 `;
                 const marker = L.marker([signal.location.latitude, signal.location.longitude], { icon: getMarkerIcon(signal.type) }).addTo(map);
@@ -256,14 +292,11 @@
                     }
                 });
                 currentSignalMarkers.push(marker);
-                let typeClass = "weak-signal";
-                if (signal.type === "strong") typeClass = "rare-signal";
-                if (signal.type === "encrypted") typeClass = "ghost-signal";
-                signalsListDiv.innerHTML += `
-                    <div class="card signal-card ${typeClass}">
-                        <div><strong>${signal.type?.toUpperCase() || "SIGNAL"}</strong> <span style="font-size:0.7rem;">осталось: ${signal.usesLeft}</span></div>
+                activeDiv.innerHTML += `
+                    <div class="card signal-card ${signal.type === 'weak' ? 'weak-signal' : (signal.type === 'strong' ? 'rare-signal' : 'ghost-signal')}">
+                        <div><i class="fas ${iconClass}"></i> <strong>${signal.type?.toUpperCase()}</strong> <span style="font-size:0.7rem;">осталось: ${signal.usesLeft}</span></div>
                         <div>📍 ${signal.name}</div>
-                        <div class="timer">📏 ${Math.round(distance)} м</div>
+                        <div>📏 ${Math.round(distance)} м</div>
                         <div style="display:flex; justify-content: space-between; margin-top:12px;">
                             <span>🎁 +${signal.rewardXP} XP, ${signal.rewardItem}</span>
                             <button class="primary accept-signal-btn" data-id="${signal.id}" data-xp="${signal.rewardXP}" data-lat="${signal.location.latitude}" data-lng="${signal.location.longitude}">ПРИНЯТЬ</button>
@@ -324,7 +357,6 @@
             loadUserProfile();
             loadRanking();
         } catch (error) {
-            console.error(error);
             showToast(error.message, 2000);
         }
     }
@@ -347,7 +379,6 @@
             invDiv.innerHTML = "";
             for (const [item, count] of Object.entries(inventory)) invDiv.innerHTML += `<div class="item"><strong>${item}</strong><br>×${count}</div>`;
             if (Object.keys(inventory).length === 0) invDiv.innerHTML = "<div>Пусто. Принимай сигналы!</div>";
-            document.getElementById("collectionsBlock").innerHTML = "🔹 Фрагменты будут появляться после сигналов";
             const repDiv = document.getElementById("reputationInfo");
             if (data.faction) repDiv.innerHTML = `⭐ Репутация: ${data.reputation?.[data.faction] || 0}`;
             else repDiv.innerHTML = `⚡ Выбери фракцию, чтобы зарабатывать репутацию.`;
@@ -403,10 +434,26 @@
                 navItems.forEach(nav => nav.classList.remove("active"));
                 item.classList.add("active");
                 if (key === "profile" || key === "inventory") loadUserProfile();
-                if (key === "rating") loadRanking();
+                if (key === "signals") {
+                    if (document.querySelector(".tab-btn.active")?.dataset.tab === "archive") loadArchive();
+                }
             });
         });
         document.querySelector(".nav-item[data-nav='map']").classList.add("active");
+        document.querySelectorAll(".tab-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                if (btn.dataset.tab === "active") {
+                    document.getElementById("activeSignalsList").style.display = "block";
+                    document.getElementById("archiveSignalsList").style.display = "none";
+                } else {
+                    document.getElementById("activeSignalsList").style.display = "none";
+                    document.getElementById("archiveSignalsList").style.display = "block";
+                    loadArchive();
+                }
+            });
+        });
     }
 
     initMap();
