@@ -375,7 +375,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion, deleteDoc, onSnapshot, query, where, orderBy, limit, runTransaction, GeoPoint } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // ⚠️ ВСТАВЬТЕ ВАШ КОНФИГ FIREBASE
+    // Firebase config (замените если нужно)
     const firebaseConfig = {
         apiKey: "AIzaSyAvqd3lQwvRecGNykyBncl-EKc0I5891UA",
         authDomain: "signal-game-27495.firebaseapp.com",
@@ -408,7 +408,6 @@
     let userLocation = null;
     let currentSignalMarkers = [];
     let unsubscribeSignals = null;
-    let currentUserData = { level: 1, xp: 0, inventory: {}, faction: null, reputation: {} };
 
     // Функция расстояния (метры)
     function getDistance(lat1, lon1, lat2, lon2) {
@@ -537,7 +536,7 @@
         });
     }
 
-    // ИСПРАВЛЕННАЯ ТРАНЗАКЦИЯ (все чтения до всех записей)
+    // ИСПРАВЛЕННАЯ ТРАНЗАКЦИЯ (все чтения до записей + защита от undefined)
     async function claimSignal(signalId, rewardXP, signalLat, signalLng) {
         if (!userLocation) {
             showToast("Включите геолокацию", 2000);
@@ -559,21 +558,31 @@
                 const userRef = doc(db, "users", userData.id.toString());
                 const userSnap = await transaction.get(userRef);
                 
-                // 2. ТЕПЕРЬ ВСЕ ЗАПИСИ (обновления, установки)
-                transaction.update(signalRef, { claimed: true });
-                
-                let currentXP = userSnap.exists() ? userSnap.data().xp : 0;
-                let level = userSnap.exists() ? userSnap.data().level : 1;
+                // 2. ПОДГОТОВКА ДАННЫХ ДЛЯ ЗАПИСИ
+                let currentXP = 0;
+                let level = 1;
+                let inventory = {};
+                let faction = null;
+                let reputation = {};   // важно: объект, а не undefined
+                if (userSnap.exists()) {
+                    currentXP = userSnap.data().xp || 0;
+                    level = userSnap.data().level || 1;
+                    inventory = userSnap.data().inventory || {};
+                    faction = userSnap.data().faction || null;
+                    reputation = userSnap.data().reputation || {};
+                }
+                const rewardItem = signalSnap.data().rewardItem;
+                if (rewardItem) {
+                    inventory[rewardItem] = (inventory[rewardItem] || 0) + 1;
+                }
                 let newXP = currentXP + rewardXP;
                 let newLevel = level;
                 if (newXP >= level * 1000) {
                     newLevel = level + 1;
                 }
-                let inventory = userSnap.exists() ? userSnap.data().inventory || {} : {};
-                const rewardItem = signalSnap.data().rewardItem;
-                if (rewardItem) {
-                    inventory[rewardItem] = (inventory[rewardItem] || 0) + 1;
-                }
+                
+                // 3. ТЕПЕРЬ ВСЕ ЗАПИСИ
+                transaction.update(signalRef, { claimed: true });
                 transaction.set(userRef, {
                     name: userData.name,
                     xp: newXP,
@@ -581,14 +590,15 @@
                     signalsTaken: arrayUnion(signalId),
                     lastSeen: new Date(),
                     inventory: inventory,
-                    faction: userSnap.exists() ? userSnap.data().faction : null,
-                    reputation: userSnap.exists() ? userSnap.data().reputation : {}
+                    faction: faction,
+                    reputation: reputation
                 }, { merge: true });
             });
             showToast(`✅ Сигнал принят! +${rewardXP} XP`, 2000);
             loadUserProfile();
             loadRanking();
         } catch (error) {
+            console.error("Транзакция ошибка:", error);
             showToast(error.message, 2000);
         }
     }
@@ -599,7 +609,6 @@
         const snap = await getDoc(userRef);
         if (snap.exists()) {
             const data = snap.data();
-            currentUserData = data;
             document.getElementById("profileUsername").innerText = data.name || userData.name;
             document.getElementById("profileLevel").innerText = data.level || 1;
             document.getElementById("profileXpCurrent").innerText = data.xp || 0;
@@ -627,7 +636,7 @@
                 repDiv.innerHTML = `⚡ Выбери фракцию, чтобы зарабатывать репутацию.`;
             }
         } else {
-            // Создаём нового пользователя
+            // Создаём нового пользователя со всеми полями
             await setDoc(doc(db, "users", userData.id.toString()), {
                 name: userData.name,
                 xp: 0,
