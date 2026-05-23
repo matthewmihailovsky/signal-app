@@ -6,7 +6,6 @@
     <title>SIGNAL — скрытый слой Минска</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        /* (стили такие же как в предыдущей версии, для краткости не повторяю, но вы можете оставить свои) */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #0a0c12; font-family: 'Inter', system-ui, sans-serif; color: #eef2ff; overflow-x: hidden; }
         .app { max-width: 450px; margin: 0 auto; background: #0f1117; min-height: 100vh; display: flex; flex-direction: column; }
@@ -34,6 +33,11 @@
         .section { display: none; }
         .section.active-section { display: block; }
         .toast-msg { position: fixed; bottom: 90px; left: 20px; right: 20px; background: #1e2a2a; backdrop-filter: blur(12px); padding: 12px; border-radius: 60px; text-align: center; z-index: 30; border-left: 4px solid #4affb5; pointer-events: none; }
+        .ranking-list { list-style: none; }
+        .ranking-list li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #262c3c; }
+        .shop-item { display: flex; justify-content: space-between; align-items: center; background: #1a1e28; margin-bottom: 12px; padding: 12px 16px; border-radius: 24px; }
+        .price { color: #ffd966; font-weight: bold; }
+        .faction-tag { background: #1f2a3a; border-radius: 40px; padding: 6px 12px; display: inline-block; font-size: 0.8rem; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -65,7 +69,7 @@
                 <div class="xp-bar"><div class="xp-fill" id="profileXpFill"></div></div>
                 <div><span id="profileXpCurrent">0</span> / <span id="profileXpNeeded">1000</span> XP</div>
             </div>
-            <div class="card"><h3>🏅 РЕЙТИНГ ГОРОДА</h3><ul class="ranking-list" id="rankingList" style="list-style:none;"></ul></div>
+            <div class="card"><h3>🏅 РЕЙТИНГ ГОРОДА</h3><ul class="ranking-list" id="rankingList"></ul></div>
             <div class="card">
                 <h3>⚔️ ТВОЯ ФРАКЦИЯ</h3>
                 <p id="factionDesc">Выбери фракцию, выполняя задания и принимая сигналы.</p>
@@ -101,6 +105,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion, onSnapshot, query, where, orderBy, limit, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+    // ========== КОНФИГ FIREBASE (ЗАМЕНИТЕ ПРИ НЕОБХОДИМОСТИ) ==========
     const firebaseConfig = {
         apiKey: "AIzaSyAvqd3lQwvRecGNykyBncl-EKc0I5891UA",
         authDomain: "signal-game-27495.firebaseapp.com",
@@ -112,7 +117,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Telegram
+    // ========== Telegram WebApp ==========
     let tg = window.Telegram?.WebApp;
     let userData = { id: null, name: "Исследователь" };
     if (tg) {
@@ -126,8 +131,10 @@
         userData.name = "Тестовый";
     }
 
+    // ========== Глобальные переменные ==========
     let map, userMarker = null, userLocation = null, currentSignalMarkers = [], unsubscribeSignals = null;
 
+    // ========== Функции ==========
     function getDistance(lat1, lon1, lat2, lon2) {
         const R = 6371e3;
         const φ1 = lat1 * Math.PI/180, φ2 = lat2 * Math.PI/180;
@@ -146,6 +153,7 @@
         setTimeout(() => toast.remove(), duration);
     }
 
+    // Инициализация карты
     function initMap() {
         map = L.map('map').setView([53.9045, 27.5615], 13);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -165,26 +173,31 @@
         }
     }
 
-    // Подписка на сигналы
+    // Подписка на сигналы (usesLeft > 0)
     function subscribeSignals() {
         if (unsubscribeSignals) unsubscribeSignals();
-        const q = query(collection(db, "signals"), where("claimed", "==", false));
+        const q = query(collection(db, "signals"), where("usesLeft", ">", 0));
         unsubscribeSignals = onSnapshot(q, (snapshot) => {
+            // Удаляем старые маркеры
             currentSignalMarkers.forEach(m => map.removeLayer(m));
             currentSignalMarkers = [];
             const signalsListDiv = document.getElementById("signalsList");
             signalsListDiv.innerHTML = "";
             if (snapshot.empty) signalsListDiv.innerHTML = `<div class="card">✨ Все сигналы расшифрованы. Жди новых...</div>`;
+            
             snapshot.forEach(docSnap => {
                 const signal = { id: docSnap.id, ...docSnap.data() };
-                if (signal.claimed || !signal.location?.latitude) return;
+                if (!signal.location?.latitude) return;
                 let distance = userLocation ? getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude) : 0;
+                
+                // Попап на карте
                 const popupContent = `
                     <div style="min-width:180px">
                         <strong>${signal.name}</strong><br>
                         <span style="background:#6c8eff; padding:2px 8px; border-radius:20px;">${signal.type?.toUpperCase() || "SIGNAL"}</span><br>
                         📍 ${Math.round(distance)} м<br>
                         🎁 +${signal.rewardXP} XP, ${signal.rewardItem || "предмет"}<br>
+                        🔄 осталось: ${signal.usesLeft}<br>
                         <button class="claim-map-btn" data-id="${signal.id}" data-xp="${signal.rewardXP}" data-lat="${signal.location.latitude}" data-lng="${signal.location.longitude}">Сканировать</button>
                     </div>
                 `;
@@ -201,13 +214,14 @@
                     }
                 });
                 currentSignalMarkers.push(marker);
-
+                
+                // Список сигналов
                 let typeClass = "weak-signal";
                 if (signal.type === "strong") typeClass = "rare-signal";
                 if (signal.type === "encrypted") typeClass = "ghost-signal";
                 signalsListDiv.innerHTML += `
                     <div class="card signal-card ${typeClass}">
-                        <div><strong>${signal.type?.toUpperCase() || "SIGNAL"}</strong></div>
+                        <div><strong>${signal.type?.toUpperCase() || "SIGNAL"}</strong> <span style="font-size:0.7rem;">осталось: ${signal.usesLeft}</span></div>
                         <div>📍 ${signal.name}</div>
                         <div class="timer">📏 ${Math.round(distance)} м</div>
                         <div style="display:flex; justify-content: space-between; margin-top:12px;">
@@ -217,6 +231,7 @@
                     </div>
                 `;
             });
+            // Обработчики кнопок в списке
             document.querySelectorAll(".accept-signal-btn").forEach(btn => {
                 if (btn.hasListener) return;
                 btn.hasListener = true;
@@ -228,7 +243,7 @@
         });
     }
 
-    // ИСПРАВЛЕННАЯ ТРАНЗАКЦИЯ – гарантия отсутствия undefined
+    // Транзакция с уменьшением usesLeft
     async function claimSignal(signalId, rewardXP, signalLat, signalLng) {
         if (!userLocation) { showToast("Включите геолокацию", 2000); return; }
         const distance = getDistance(userLocation.lat, userLocation.lng, signalLat, signalLng);
@@ -237,11 +252,17 @@
             await runTransaction(db, async (transaction) => {
                 const signalRef = doc(db, "signals", signalId);
                 const signalSnap = await transaction.get(signalRef);
-                if (!signalSnap.exists() || signalSnap.data().claimed === true) throw new Error("Сигнал уже активирован");
+                if (!signalSnap.exists() || signalSnap.data().usesLeft <= 0) {
+                    throw new Error("Сигнал уже исчерпан");
+                }
                 const userRef = doc(db, "users", userData.id.toString());
                 const userSnap = await transaction.get(userRef);
                 
-                // Безопасное извлечение данных
+                // Уменьшаем usesLeft
+                const newUsesLeft = signalSnap.data().usesLeft - 1;
+                transaction.update(signalRef, { usesLeft: newUsesLeft });
+                
+                // Обновляем пользователя
                 const existing = userSnap.exists() ? userSnap.data() : {};
                 const currentXP = typeof existing.xp === 'number' ? existing.xp : 0;
                 const level = typeof existing.level === 'number' ? existing.level : 1;
@@ -254,8 +275,6 @@
                 let newLevel = level;
                 if (newXP >= level * 1000) newLevel = level + 1;
                 
-                // Записи
-                transaction.update(signalRef, { claimed: true });
                 transaction.set(userRef, {
                     name: userData.name,
                     xp: newXP,
@@ -276,6 +295,7 @@
         }
     }
 
+    // Профиль и инвентарь
     async function loadUserProfile() {
         const userRef = doc(db, "users", userData.id.toString());
         const snap = await getDoc(userRef);
