@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SIGNAL — скрытый слой Минска</title>
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -36,6 +37,39 @@
         .shop-item { display: flex; justify-content: space-between; align-items: center; background: #1a1e28; margin-bottom: 12px; padding: 12px 16px; border-radius: 24px; }
         .price { color: #ffd966; font-weight: bold; }
         .faction-tag { background: #1f2a3a; border-radius: 40px; padding: 6px 12px; display: inline-block; font-size: 0.8rem; }
+
+        /* Стили для кастомных маркеров */
+        .custom-marker {
+            background: rgba(74, 255, 181, 0.9);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 10px rgba(74, 255, 181, 0.8);
+            transition: transform 0.2s;
+        }
+        .custom-marker-weak { background: #6c8eff; box-shadow: 0 0 10px #6c8eff; }
+        .custom-marker-strong { background: #ffb347; box-shadow: 0 0 10px #ffb347; }
+        .custom-marker-encrypted { background: #c084fc; box-shadow: 0 0 10px #c084fc; }
+        .custom-marker-black { background: #ff4d4d; box-shadow: 0 0 10px #ff4d4d; }
+
+        /* Стили для попапа (полупрозрачный, тёмный) */
+        .custom-popup .leaflet-popup-content-wrapper {
+            background: rgba(15, 17, 23, 0.95);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            border: 1px solid rgba(74, 255, 181, 0.3);
+            color: #eef2ff;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        }
+        .custom-popup .leaflet-popup-tip {
+            background: rgba(15, 17, 23, 0.95);
+            border-top: 1px solid rgba(74, 255, 181, 0.3);
+        }
+        .custom-popup .leaflet-popup-close-button {
+            color: #eef2ff;
+            font-size: 18px;
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -153,17 +187,41 @@
         setTimeout(() => toast.remove(), duration);
     }
 
+    // Функция для создания кастомного маркера в зависимости от типа сигнала
+    function getMarkerIcon(signalType) {
+        let colorClass = "custom-marker";
+        if (signalType === "weak") colorClass = "custom-marker custom-marker-weak";
+        else if (signalType === "strong") colorClass = "custom-marker custom-marker-strong";
+        else if (signalType === "encrypted") colorClass = "custom-marker custom-marker-encrypted";
+        else if (signalType === "black") colorClass = "custom-marker custom-marker-black";
+        else colorClass = "custom-marker";
+        
+        return L.divIcon({
+            className: colorClass,
+            iconSize: [24, 24],
+            popupAnchor: [0, -12]
+        });
+    }
+
     function initMap() {
+        // Тёмная подложка CartoDB Dark
         map = L.map('map').setView([53.9045, 27.5615], 13);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CartoDB'
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CartoDB',
+            subdomains: 'abcd',
+            minZoom: 0,
+            maxZoom: 20
         }).addTo(map);
+
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(
                 (pos) => {
                     userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                     if (userMarker) map.removeLayer(userMarker);
-                    userMarker = L.marker([userLocation.lat, userLocation.lng], { icon: L.divIcon({ html: '📍', iconSize: [24,24] }) }).addTo(map);
+                    // Маркер пользователя — светящаяся точка
+                    userMarker = L.marker([userLocation.lat, userLocation.lng], {
+                        icon: L.divIcon({ className: 'user-marker', html: '📍', iconSize: [24,24] })
+                    }).addTo(map);
                     map.setView([userLocation.lat, userLocation.lng], 15);
                 },
                 (err) => console.warn(err),
@@ -186,17 +244,17 @@
                 if (!signal.location?.latitude) return;
                 let distance = userLocation ? getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude) : 0;
                 const popupContent = `
-                    <div style="min-width:180px">
-                        <strong>${signal.name}</strong><br>
-                        <span style="background:#6c8eff; padding:2px 8px; border-radius:20px;">${signal.type?.toUpperCase() || "SIGNAL"}</span><br>
+                    <div style="min-width:180px; text-align:center;">
+                        <strong style="font-size:1rem;">${signal.name}</strong><br>
+                        <span style="background:${signal.type === 'weak' ? '#6c8eff' : (signal.type === 'strong' ? '#ffb347' : (signal.type === 'encrypted' ? '#c084fc' : '#ff4d4d'))}; padding:2px 12px; border-radius:20px; font-size:0.7rem;">${signal.type?.toUpperCase() || "SIGNAL"}</span><br>
                         📍 ${Math.round(distance)} м<br>
                         🎁 +${signal.rewardXP} XP, ${signal.rewardItem || "предмет"}<br>
                         🔄 осталось: ${signal.usesLeft}<br>
-                        <button class="claim-map-btn" data-id="${signal.id}" data-xp="${signal.rewardXP}" data-lat="${signal.location.latitude}" data-lng="${signal.location.longitude}">Сканировать</button>
+                        <button class="claim-map-btn" data-id="${signal.id}" data-xp="${signal.rewardXP}" data-lat="${signal.location.latitude}" data-lng="${signal.location.longitude}" style="margin-top:8px; background:#4affb5; color:#0a0c12; border:none; padding:6px 12px; border-radius:30px;">Сканировать</button>
                     </div>
                 `;
-                const marker = L.marker([signal.location.latitude, signal.location.longitude]).addTo(map);
-                marker.bindPopup(popupContent);
+                const marker = L.marker([signal.location.latitude, signal.location.longitude], { icon: getMarkerIcon(signal.type) }).addTo(map);
+                marker.bindPopup(popupContent, { className: 'custom-popup' });
                 marker.on('popupopen', () => {
                     const btn = document.querySelector('.claim-map-btn');
                     if (btn && !btn.hasListener) {
