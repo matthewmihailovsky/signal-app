@@ -35,7 +35,30 @@
         .xp-fill { background: #4affb5; height: 100%; width: 0%; }
         .section { display: none; }
         .section.active-section { display: block; }
-        .toast-msg { position: fixed; bottom: 90px; left: 20px; right: 20px; background: #1e2a2a; backdrop-filter: blur(12px); padding: 12px; border-radius: 60px; text-align: center; z-index: 30; border-left: 4px solid #4affb5; pointer-events: none; }
+        .toast-msg {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #1e2a2a;
+            backdrop-filter: blur(16px);
+            padding: 14px 24px;
+            border-radius: 60px;
+            text-align: center;
+            z-index: 100000;
+            font-weight: 600;
+            border-left: 4px solid #4affb5;
+            pointer-events: none;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.8);
+            font-size: 1rem;
+            white-space: nowrap;
+            max-width: 90%;
+            white-space: normal;
+        }
+        .toast-msg.error {
+            border-left-color: #ff4d4d;
+            background: #2a1a1a;
+        }
         .ranking-list { list-style: none; }
         .ranking-list li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #262c3c; }
         .shop-item { display: flex; justify-content: space-between; align-items: center; background: #1a1e28; margin-bottom: 12px; padding: 12px 16px; border-radius: 24px; }
@@ -49,7 +72,7 @@
         .custom-popup .leaflet-popup-content-wrapper { background: rgba(15, 17, 23, 0.95); backdrop-filter: blur(12px); border-radius: 20px; border: 1px solid rgba(74, 255, 181, 0.3); color: #eef2ff; }
         .custom-popup .leaflet-popup-tip { background: rgba(15, 17, 23, 0.95); }
 
-        /* Стили для детального экрана */
+        /* Детальный экран - максимальный z-index, непрозрачный фон */
         .detail-screen {
             position: fixed;
             top: 0;
@@ -57,13 +80,15 @@
             right: 0;
             bottom: 0;
             background: #0f1117;
-            z-index: 200;
+            z-index: 20000;
             overflow-y: auto;
             padding: 20px;
             transform: translateX(100%);
             transition: transform 0.3s ease;
         }
-        .detail-screen.active { transform: translateX(0); }
+        .detail-screen.active {
+            transform: translateX(0);
+        }
         .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .detail-header h2 { font-size: 1.6rem; }
         .close-detail { font-size: 1.8rem; cursor: pointer; background: none; padding: 0; width: 40px; height: 40px; }
@@ -73,6 +98,15 @@
         .detail-info-row i { width: 24px; }
         .action-buttons { display: flex; gap: 12px; margin-top: 20px; }
         .action-buttons button { flex: 1; }
+        .error-message-inline {
+            background: rgba(255,77,77,0.2);
+            border: 1px solid #ff4d4d;
+            border-radius: 16px;
+            padding: 12px;
+            margin: 16px 0;
+            text-align: center;
+            color: #ff9999;
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -197,14 +231,15 @@
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    function showToast(msg, duration=2000) {
+    function showToast(msg, isError = false) {
         let existing = document.querySelector(".toast-msg");
         if(existing) existing.remove();
         let toast = document.createElement("div");
         toast.className = "toast-msg";
+        if (isError) toast.classList.add("error");
         toast.innerText = msg;
         document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), duration);
+        setTimeout(() => toast.remove(), 3000);
     }
 
     function getMarkerIcon(signalType) {
@@ -260,7 +295,7 @@
                 📍 ${signal.address || "Координаты: " + signal.location.latitude.toFixed(5) + ", " + signal.location.longitude.toFixed(5)}
             </div>
             <div class="detail-info-row">
-                <i class="fas fa-ruler-combined"></i> <span>${Math.round(distance)} м</span>
+                <i class="fas fa-ruler-combined"></i> <span id="detailDistance">${Math.round(distance)} м</span>
             </div>
             <div class="detail-info-row">
                 <i class="fas fa-hourglass-half"></i> <span>30 мин</span>
@@ -268,6 +303,7 @@
             <div class="detail-info-row">
                 <i class="fas fa-gift"></i> <span>+${signal.rewardXP} XP, ${signal.rewardItem || "предмет"}</span>
             </div>
+            <div id="detailError" style="display:none;" class="error-message-inline"></div>
             <div class="action-buttons">
                 <button class="primary" id="navigateBtn">🧭 Начать слежение</button>
                 <button class="primary" id="scanDetailBtn">📡 Сканировать</button>
@@ -277,7 +313,7 @@
         
         document.getElementById("navigateBtn").onclick = () => {
             if (!userLocation) {
-                showToast("Не удалось определить ваше местоположение", 2000);
+                showToast("Не удалось определить местоположение", true);
                 return;
             }
             const url = `https://www.google.com/maps/dir/?api=1&destination=${signal.location.latitude},${signal.location.longitude}&travelmode=walking`;
@@ -285,24 +321,30 @@
         };
         
         document.getElementById("scanDetailBtn").onclick = async () => {
+            const errorDiv = document.getElementById("detailError");
+            errorDiv.style.display = "none";
             if (!userLocation) {
-                showToast("Включите геолокацию", 2000);
+                showToast("Включите геолокацию", true);
                 return;
             }
             const dist = getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude);
             if (dist > 50) {
-                showToast(`Вы слишком далеко (${Math.round(dist)} м). Подойдите ближе.`, 2000);
+                errorDiv.innerHTML = `⚠️ Вы слишком далеко (${Math.round(dist)} м). Подойдите ближе (нужно ≤50 м).`;
+                errorDiv.style.display = "block";
+                showToast(`Вы слишком далеко: ${Math.round(dist)} м`, true);
                 return;
             }
-            await claimSignal(signal.id, signal.rewardXP, signal.location.latitude, signal.location.longitude);
-            document.getElementById("detailScreen").classList.remove("active");
+            const success = await claimSignal(signal.id, signal.rewardXP, signal.location.latitude, signal.location.longitude);
+            if (success) {
+                document.getElementById("detailScreen").classList.remove("active");
+            }
         };
     }
 
     async function claimSignal(signalId, rewardXP, signalLat, signalLng) {
-        if (!userLocation) { showToast("Включите геолокацию", 2000); return; }
+        if (!userLocation) { showToast("Включите геолокацию", true); return false; }
         const distance = getDistance(userLocation.lat, userLocation.lng, signalLat, signalLng);
-        if (distance > 50) { showToast(`Вы слишком далеко (${Math.round(distance)} м). Подойдите ближе.`, 2000); return; }
+        if (distance > 50) { showToast(`Вы слишком далеко (${Math.round(distance)} м)`, true); return false; }
         try {
             await runTransaction(db, async (transaction) => {
                 const signalRef = doc(db, "signals", signalId);
@@ -337,11 +379,13 @@
                     reputation: reputation
                 }, { merge: true });
             });
-            showToast(`✅ Сигнал принят! +${rewardXP} XP`, 2000);
+            showToast(`✅ Сигнал принят! +${rewardXP} XP`);
             loadUserProfile();
             loadRanking();
+            return true;
         } catch (error) {
-            showToast(error.message, 2000);
+            showToast(error.message, true);
+            return false;
         }
     }
 
@@ -383,7 +427,6 @@
         if (unsubscribeSignals) unsubscribeSignals();
         const q = query(collection(db, "signals"), where("usesLeft", ">", 0));
         unsubscribeSignals = onSnapshot(q, (snapshot) => {
-            // Удаляем старые маркеры
             currentSignalMarkers.forEach(m => map.removeLayer(m));
             currentSignalMarkers = [];
             const activeDiv = document.getElementById("activeSignalsList");
@@ -399,9 +442,8 @@
                 else if (signal.type === 'encrypted') iconClass = 'fa-lock';
                 else if (signal.type === 'black') iconClass = 'fa-skull';
                 
-                // Маркер на карте
                 const marker = L.marker([signal.location.latitude, signal.location.longitude], { icon: getMarkerIcon(signal.type) }).addTo(map);
-                marker.signalData = signal; // сохраняем данные сигнала в маркере
+                marker.signalData = signal;
                 marker.bindPopup(`
                     <div style="text-align:center;">
                         <strong>${signal.name}</strong><br>
@@ -419,7 +461,6 @@
                 });
                 currentSignalMarkers.push(marker);
                 
-                // Карточка в списке
                 const cardDiv = document.createElement('div');
                 cardDiv.className = `card signal-card ${signal.type === 'weak' ? 'weak-signal' : (signal.type === 'strong' ? 'rare-signal' : 'ghost-signal')}`;
                 cardDiv.innerHTML = `
@@ -486,18 +527,18 @@
                 const snap = await getDoc(userRef);
                 if (!snap.exists() || !snap.data().faction) {
                     await updateDoc(userRef, { faction: chosen });
-                    showToast(`Ты присоединился к фракции "${chosen}"!`, 2000);
+                    showToast(`Ты присоединился к фракции "${chosen}"!`);
                     loadUserProfile();
-                } else showToast(`Ты уже во фракции ${snap.data().faction}.`, 1500);
+                } else showToast(`Ты уже во фракции ${snap.data().faction}.`, true);
             });
         });
     }
 
     function bindShopEvents() {
-        document.querySelector(".buy-premium")?.addEventListener("click", () => showToast("✨ Премиум активирован (демо)", 2000));
-        document.querySelector(".buy-signal")?.addEventListener("click", () => showToast("🔮 Эксклюзивный сигнал добавлен (демо)", 2000));
-        document.querySelector(".buy-booster")?.addEventListener("click", () => showToast("⚡ Бустер опыта активирован", 2000));
-        document.querySelector(".buy-drop")?.addEventListener("click", () => showToast("🎁 Секретный дроп получен", 2000));
+        document.querySelector(".buy-premium")?.addEventListener("click", () => showToast("✨ Премиум активирован (демо)"));
+        document.querySelector(".buy-signal")?.addEventListener("click", () => showToast("🔮 Эксклюзивный сигнал добавлен (демо)"));
+        document.querySelector(".buy-booster")?.addEventListener("click", () => showToast("⚡ Бустер опыта активирован"));
+        document.querySelector(".buy-drop")?.addEventListener("click", () => showToast("🎁 Секретный дроп получен"));
     }
 
     function initNavigation() {
