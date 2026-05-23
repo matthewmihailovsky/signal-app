@@ -49,6 +49,7 @@
         .custom-popup .leaflet-popup-content-wrapper { background: rgba(15, 17, 23, 0.95); backdrop-filter: blur(12px); border-radius: 20px; border: 1px solid rgba(74, 255, 181, 0.3); color: #eef2ff; }
         .custom-popup .leaflet-popup-tip { background: rgba(15, 17, 23, 0.95); }
 
+        /* Стили для детального экрана */
         .detail-screen {
             position: fixed;
             top: 0;
@@ -62,17 +63,63 @@
             transform: translateX(100%);
             transition: transform 0.3s ease;
         }
-        .detail-screen.active { transform: translateX(0); }
-        .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .detail-header h2 { font-size: 1.6rem; }
-        .close-detail { font-size: 1.8rem; cursor: pointer; background: none; padding: 0; width: 40px; height: 40px; }
-        .detail-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-bottom: 12px; }
-        .detail-address { background: #1e2330; padding: 12px; border-radius: 16px; margin: 12px 0; font-family: monospace; }
-        .nav-button { width: 100%; margin-top: 20px; }
-        .scan-area { text-align: center; margin: 30px 0; }
-        .scan-frame { width: 200px; height: 200px; border: 2px solid #4affb5; border-radius: 20px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; background: #1a1e2a; }
-        .ticket { background: linear-gradient(135deg, #1a1e2a, #0a0c12); border: 1px solid #ffd966; border-radius: 20px; padding: 20px; text-align: center; margin: 20px 0; }
-        .ticket h3 { color: #ffd966; margin-bottom: 10px; }
+        .detail-screen.active {
+            transform: translateX(0);
+        }
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .detail-header h2 {
+            font-size: 1.6rem;
+        }
+        .close-detail {
+            font-size: 1.8rem;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+        }
+        .detail-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        .detail-address {
+            background: #1e2330;
+            padding: 12px;
+            border-radius: 16px;
+            margin: 12px 0;
+            font-family: monospace;
+        }
+        .detail-info-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 12px 0;
+            color: #8b93b0;
+        }
+        .detail-info-row i {
+            width: 24px;
+        }
+        .nav-button {
+            width: 100%;
+            margin-top: 20px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .action-buttons button {
+            flex: 1;
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -101,7 +148,7 @@
             </div>
         </div>
         
-        <!-- СИГНАЛЫ -->
+        <!-- СИГНАЛЫ С ВКЛАДКАМИ -->
         <div id="signalsSection" class="section">
             <div class="tabs">
                 <button class="tab-btn active" data-tab="active">Активные</button>
@@ -154,7 +201,7 @@
     <!-- ДЕТАЛЬНЫЙ ЭКРАН СИГНАЛА -->
     <div id="detailScreen" class="detail-screen">
         <div class="detail-header">
-            <h2 id="detailTitle">Сигнал</h2>
+            <h2>Детали сигнала</h2>
             <button class="close-detail" id="closeDetailBtn">✖️</button>
         </div>
         <div id="detailContent"></div>
@@ -198,9 +245,7 @@
     }
 
     let map, userMarker = null, userLocation = null, currentSignalMarkers = [], unsubscribeSignals = null;
-    let currentSignalDetail = null;
-    let navigationLine = null;
-    let navInterval = null;
+    let currentDetailSignal = null;
 
     function getDistance(lat1, lon1, lat2, lon2) {
         const R = 6371e3;
@@ -245,10 +290,6 @@
                         icon: L.divIcon({ className: 'user-marker', html: '📍', iconSize: [24,24] })
                     }).addTo(map);
                     if (first) { map.setView([userLocation.lat, userLocation.lng], 15); first = false; }
-                    // Если активна навигация — обновляем линию и расстояние
-                    if (navigationLine && currentSignalDetail) {
-                        updateNavigationLine();
-                    }
                 },
                 (err) => console.warn(err),
                 { enableHighAccuracy: true }
@@ -259,20 +300,8 @@
         });
     }
 
-    function updateNavigationLine() {
-        if (!navigationLine) return;
-        if (!userLocation || !currentSignalDetail) return;
-        const signalLat = currentSignalDetail.location.latitude;
-        const signalLng = currentSignalDetail.location.longitude;
-        navigationLine.setLatLngs([[userLocation.lat, userLocation.lng], [signalLat, signalLng]]);
-        const distance = getDistance(userLocation.lat, userLocation.lng, signalLat, signalLng);
-        const distSpan = document.getElementById("navDistance");
-        if (distSpan) distSpan.innerText = Math.round(distance) + " м";
-    }
-
     function showDetail(signal) {
-        currentSignalDetail = signal;
-        const detailDiv = document.getElementById("detailContent");
+        currentDetailSignal = signal;
         const distance = userLocation ? getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude) : 0;
         const typeText = signal.type?.toUpperCase() || "SIGNAL";
         let typeColor = '#4affb5';
@@ -281,7 +310,7 @@
         else if (signal.type === 'encrypted') typeColor = '#c084fc';
         else if (signal.type === 'black') typeColor = '#ff4d4d';
         
-        detailDiv.innerHTML = `
+        const html = `
             <div class="detail-badge" style="background:${typeColor}20; color:${typeColor}; border:1px solid ${typeColor}">
                 ${typeText} ${signal.type === 'weak' ? '⚡' : (signal.type === 'strong' ? '💪' : (signal.type === 'encrypted' ? '🔒' : '🌑'))}
             </div>
@@ -289,125 +318,53 @@
             <div class="detail-address">
                 📍 ${signal.address || "Координаты: " + signal.location.latitude.toFixed(5) + ", " + signal.location.longitude.toFixed(5)}
             </div>
-            <div>📏 Расстояние: <strong>${Math.round(distance)} м</strong></div>
-            <div>🎁 Награда: +${signal.rewardXP} XP, ${signal.rewardItem || "предмет"}</div>
-            <div>🔄 Осталось активаций: ${signal.usesLeft}</div>
-            <button class="primary nav-button" id="startNavigationBtn">🧭 Начать слежение</button>
+            <div class="detail-info-row">
+                <i class="fas fa-ruler-combined"></i> <span>${Math.round(distance)} м</span>
+            </div>
+            <div class="detail-info-row">
+                <i class="fas fa-hourglass-half"></i> <span>30 мин (примерно)</span>
+            </div>
+            <div class="detail-info-row">
+                <i class="fas fa-gift"></i> <span>+${signal.rewardXP} XP, ${signal.rewardItem || "предмет"}</span>
+            </div>
+            <div class="action-buttons">
+                <button class="primary" id="navigateBtn">🧭 Начать слежение</button>
+                <button class="primary" id="scanDetailBtn">📡 Сканировать</button>
+            </div>
         `;
+        document.getElementById("detailContent").innerHTML = html;
         document.getElementById("detailScreen").classList.add("active");
         
-        document.getElementById("startNavigationBtn").onclick = () => startNavigation(signal);
-    }
-
-    function startNavigation(signal) {
-        if (!userLocation) {
-            showToast("Не удалось определить ваше местоположение", 2000);
-            return;
-        }
-        // Удаляем предыдущую линию, если есть
-        if (navigationLine) map.removeLayer(navigationLine);
-        // Рисуем линию от пользователя до сигнала
-        navigationLine = L.polyline([
-            [userLocation.lat, userLocation.lng],
-            [signal.location.latitude, signal.location.longitude]
-        ], { color: '#4affb5', weight: 3, dashArray: '5, 10' }).addTo(map);
-        // Центрируем карту так, чтобы видны обе точки
-        map.fitBounds([
-            [userLocation.lat, userLocation.lng],
-            [signal.location.latitude, signal.location.longitude]
-        ]);
-        
-        // Меняем содержимое детального окна на панель навигации
-        const detailDiv = document.getElementById("detailContent");
-        const distance = getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude);
-        detailDiv.innerHTML = `
-            <div class="detail-badge" style="background:#4affb520; color:#4affb5;">
-                🧭 НАВИГАЦИЯ
-            </div>
-            <p>Идите по направлению к точке. Расстояние: <strong id="navDistance">${Math.round(distance)} м</strong></p>
-            <button class="primary" id="arriveBtn">✅ Я на месте</button>
-        `;
-        
-        // Запускаем интервал обновления расстояния и линии
-        if (navInterval) clearInterval(navInterval);
-        navInterval = setInterval(() => {
-            if (!userLocation || !signal) return;
-            const newDist = getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude);
-            const distSpan = document.getElementById("navDistance");
-            if (distSpan) distSpan.innerText = Math.round(newDist) + " м";
-            if (navigationLine) {
-                navigationLine.setLatLngs([[userLocation.lat, userLocation.lng], [signal.location.latitude, signal.location.longitude]]);
+        document.getElementById("navigateBtn").onclick = () => {
+            if (!userLocation) {
+                showToast("Не удалось определить ваше местоположение", 2000);
+                return;
             }
-        }, 1000);
+            const lat = signal.location.latitude;
+            const lng = signal.location.longitude;
+            const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`;
+            window.open(url, '_blank');
+        };
         
-        document.getElementById("arriveBtn").onclick = () => {
-            if (navInterval) clearInterval(navInterval);
-            navInterval = null;
-            if (navigationLine) map.removeLayer(navigationLine);
-            navigationLine = null;
-            checkProximityAndScan(signal);
-        };
-    }
-    
-    async function checkProximityAndScan(signal) {
-        if (!userLocation) {
-            showToast("Не удалось определить ваше местоположение", 2000);
-            return;
-        }
-        const distance = getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude);
-        if (distance <= 50) {
-            // Экран сканирования
-            document.getElementById("detailContent").innerHTML = `
-                <div class="scan-area">
-                    <div class="scan-frame">
-                        <i class="fas fa-camera" style="font-size: 48px; color: #4affb5;"></i>
-                    </div>
-                    <button class="primary" id="scanBtn">📸 Отсканировать QR / Подтвердить</button>
-                </div>
-            `;
-            document.getElementById("scanBtn").onclick = async () => {
-                await claimSignal(signal.id, signal.rewardXP, signal.location.latitude, signal.location.longitude);
-                showTicket(signal);
-            };
-        } else {
-            showToast(`Вы слишком далеко (${Math.round(distance)} м). Подойдите ближе.`, 3000);
-            // Возвращаем к деталям сигнала, чтобы можно было снова начать навигацию
-            showDetail(signal);
-        }
-    }
-    
-    function showTicket(signal) {
-        const ticketHTML = `
-            <div class="ticket">
-                <h3>🎫 ДОСТУП ПОЛУЧЕН</h3>
-                <h2>ZARA SECRET DROP ACCESS</h2>
-                <p>Сегодня 19:00 - 22:00<br>Тверская, 16</p>
-                <p>Только для игроков SIGNAL</p>
-                <button class="primary" id="closeTicketBtn">Показать билет</button>
-            </div>
-        `;
-        document.getElementById("detailContent").innerHTML = ticketHTML;
-        document.getElementById("closeTicketBtn").onclick = () => {
+        document.getElementById("scanDetailBtn").onclick = async () => {
+            if (!userLocation) {
+                showToast("Включите геолокацию", 2000);
+                return;
+            }
+            const dist = getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude);
+            if (dist > 50) {
+                showToast(`Вы слишком далеко (${Math.round(dist)} м). Подойдите ближе.`, 2000);
+                return;
+            }
+            await claimSignal(signal.id, signal.rewardXP, signal.location.latitude, signal.location.longitude);
             document.getElementById("detailScreen").classList.remove("active");
-            loadUserProfile();
         };
-        addTicketToInventory();
-    }
-    
-    async function addTicketToInventory() {
-        const userRef = doc(db, "users", userData.id.toString());
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-            let inventory = userSnap.data().inventory || {};
-            inventory["Билет ZARA"] = (inventory["Билет ZARA"] || 0) + 1;
-            await updateDoc(userRef, { inventory: inventory });
-        }
     }
 
     async function claimSignal(signalId, rewardXP, signalLat, signalLng) {
-        if (!userLocation) { showToast("Включите геолокацию", 2000); return false; }
+        if (!userLocation) { showToast("Включите геолокацию", 2000); return; }
         const distance = getDistance(userLocation.lat, userLocation.lng, signalLat, signalLng);
-        if (distance > 50) { showToast(`Вы слишком далеко (${Math.round(distance)} м). Подойдите ближе.`, 2000); return false; }
+        if (distance > 50) { showToast(`Вы слишком далеко (${Math.round(distance)} м). Подойдите ближе.`, 2000); return; }
         try {
             await runTransaction(db, async (transaction) => {
                 const signalRef = doc(db, "signals", signalId);
@@ -445,13 +402,11 @@
             showToast(`✅ Сигнал принят! +${rewardXP} XP`, 2000);
             loadUserProfile();
             loadRanking();
-            return true;
         } catch (error) {
             showToast(error.message, 2000);
-            return false;
         }
     }
-    
+
     async function loadArchive() {
         const userRef = doc(db, "users", userData.id.toString());
         const userSnap = await getDoc(userRef);
@@ -476,7 +431,7 @@
                 else if (s.type === 'black') iconClass = 'fa-skull';
                 html += `
                     <div class="card signal-card ${s.type === 'weak' ? 'weak-signal' : (s.type === 'strong' ? 'rare-signal' : 'ghost-signal')}">
-                        <div><i class="fas ${iconClass}"></i> <strong>${s.name}</strong> (${s.type?.toUpperCase()})</div>
+                        <div><i class="fas ${iconClass}" style="margin-right:6px;"></i> <strong>${s.name}</strong> (${s.type?.toUpperCase()})</div>
                         <div>🎁 +${s.rewardXP} XP, ${s.rewardItem || 'предмет'}</div>
                         <div>📅 Активирован</div>
                     </div>
@@ -504,6 +459,7 @@
                 else if (signal.type === 'encrypted') iconClass = 'fa-lock';
                 else if (signal.type === 'black') iconClass = 'fa-skull';
                 
+                // Маркер на карте
                 const marker = L.marker([signal.location.latitude, signal.location.longitude], { icon: getMarkerIcon(signal.type) }).addTo(map);
                 marker.bindPopup(`
                     <div style="text-align:center;">
@@ -521,6 +477,7 @@
                 });
                 currentSignalMarkers.push(marker);
                 
+                // Карточка в списке
                 activeDiv.innerHTML += `
                     <div class="card signal-card ${signal.type === 'weak' ? 'weak-signal' : (signal.type === 'strong' ? 'rare-signal' : 'ghost-signal')}">
                         <div><i class="fas ${iconClass}"></i> <strong>${signal.type?.toUpperCase()}</strong> <span style="font-size:0.7rem;">осталось: ${signal.usesLeft}</span></div>
@@ -528,18 +485,23 @@
                         <div>📏 ${Math.round(distance)} м</div>
                         <div style="display:flex; justify-content: space-between; margin-top:12px;">
                             <span>🎁 +${signal.rewardXP} XP, ${signal.rewardItem}</span>
-                            <button class="primary detail-from-list-btn" data-signal='${JSON.stringify(signal)}'>Детали</button>
+                            <button class="primary detail-list-btn" data-id="${signal.id}">Детали</button>
                         </div>
                     </div>
                 `;
             });
-            document.querySelectorAll(".detail-from-list-btn").forEach(btn => {
+            document.querySelectorAll(".detail-list-btn").forEach(btn => {
                 if (btn.hasListener) return;
                 btn.hasListener = true;
                 btn.addEventListener("click", () => {
-                    const signal = JSON.parse(btn.getAttribute('data-signal'));
-                    showDetail(signal);
+                    const id = btn.getAttribute("data-id");
+                    const signal = currentSignalMarkers.find(m => m.signalData?.id === id)?.signalData;
+                    if (signal) showDetail(signal);
                 });
+            });
+            // Сохраняем данные сигналов в маркерах для быстрого доступа
+            currentSignalMarkers.forEach((m, idx) => {
+                m.signalData = snapshot.docs[idx]?.data();
             });
         });
     }
@@ -638,9 +600,6 @@
             });
         });
         document.getElementById("closeDetailBtn").addEventListener("click", () => {
-            if (navInterval) clearInterval(navInterval);
-            if (navigationLine) map.removeLayer(navigationLine);
-            navigationLine = null;
             document.getElementById("detailScreen").classList.remove("active");
         });
     }
