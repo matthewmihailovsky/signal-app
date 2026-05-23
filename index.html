@@ -4,97 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SIGNAL — скрытый слой Минска</title>
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        /* ===== Базовые стили ===== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #0a0c12; font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; color: #eef2ff; overflow-x: hidden; }
-        .app { max-width: 450px; margin: 0 auto; background: #0f1117; min-height: 100vh; display: flex; flex-direction: column; position: relative; }
-
-        /* Хедер */
-        .header { padding: 20px 16px 8px; border-bottom: 1px solid rgba(255,255,255,0.08); background: #0f1117; z-index: 5; }
-        .header h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px; background: linear-gradient(135deg, #fff, #a5f0ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .header p { font-size: 0.75rem; color: #8b93b0; margin-top: 4px; }
-
-        /* Контент */
+        body { background: #0a0c12; font-family: 'Inter', system-ui, sans-serif; color: #eef2ff; overflow-x: hidden; }
+        .app { max-width: 450px; margin: 0 auto; background: #0f1117; min-height: 100vh; display: flex; flex-direction: column; }
+        .header { padding: 20px 16px 8px; border-bottom: 1px solid rgba(255,255,255,0.08); background: #0f1117; }
+        .header h1 { font-size: 1.8rem; background: linear-gradient(135deg, #fff, #a5f0ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .content { flex: 1; padding: 16px 16px 80px; overflow-y: auto; }
-
-        /* Карточки */
-        .card { background: #171a23; border-radius: 28px; padding: 16px; margin-bottom: 18px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
-
-        /* Контейнер карты */
-        #mapContainer { height: 380px; border-radius: 28px; overflow: hidden; margin-bottom: 16px; border: 1px solid #2e3548; position: relative; }
-        #map { height: 100%; width: 100%; background: #0a0c12; }
-
-        /* Районы */
-        .districts-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-top: 8px; }
-        .district-card { background: #1e2330; border-radius: 24px; padding: 14px; text-align: center; border: 1px solid #2e3548; transition: 0.2s; }
-        .district-name { font-weight: 700; font-size: 1.1rem; }
-        .district-progress { background: #2a2f3f; border-radius: 20px; height: 6px; margin: 8px 0; overflow: hidden; }
-        .district-fill { background: #4affb5; width: 0%; height: 100%; border-radius: 20px; }
-        .signal-badge { font-size: 0.7rem; background: #ffb34730; border-radius: 40px; padding: 4px 8px; margin-top: 8px; display: inline-block; }
-
-        /* Стили для сигналов в списке */
+        .card { background: #171a23; border-radius: 28px; padding: 16px; margin-bottom: 18px; border: 1px solid rgba(255,255,255,0.05); }
+        #mapContainer { height: 500px; border-radius: 28px; overflow: hidden; margin-bottom: 16px; }
+        #map { height: 100%; width: 100%; }
         .signal-card { background: linear-gradient(135deg,#1a1e2a,#12151e); border-left: 3px solid #4affb5; margin-bottom: 12px; padding: 12px; border-radius: 16px; }
         .weak-signal { border-left-color: #6c8eff; }
         .rare-signal { border-left-color: #ffb347; }
         .ghost-signal { border-left-color: #c084fc; }
-
-        button { background: #2a2f3f; border: none; color: white; font-weight: 600; padding: 10px 18px; border-radius: 60px; font-size: 0.85rem; cursor: pointer; transition: 0.2s; }
-        button.primary { background: #4affb5; color: #0a0c12; box-shadow: 0 0 8px #4affb580; }
-        button.primary:active { transform: scale(0.96); }
-
-        /* Нижняя навигация */
+        button { background: #2a2f3f; border: none; color: white; font-weight: 600; padding: 10px 18px; border-radius: 60px; cursor: pointer; }
+        button.primary { background: #4affb5; color: #0a0c12; }
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; max-width: 450px; margin: 0 auto; background: rgba(15,17,23,0.96); backdrop-filter: blur(20px); display: flex; justify-content: space-around; padding: 12px 16px 20px; border-top: 1px solid rgba(255,255,255,0.08); z-index: 20; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.7rem; color: #7e85a3; cursor: pointer; transition: 0.2s; }
-        .nav-item.active { color: #4affb5; text-shadow: 0 0 6px #4affb580; }
-        .nav-icon { font-size: 1.7rem; }
-
-        /* Инвентарь, профиль, магазин */
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.7rem; color: #7e85a3; cursor: pointer; }
+        .nav-item.active { color: #4affb5; }
         .items-grid { display: flex; flex-wrap: wrap; gap: 12px; }
         .item { background: #1e2330; border-radius: 20px; padding: 10px 14px; text-align: center; flex: 1 0 80px; }
         .xp-bar { background: #262c3c; border-radius: 30px; height: 12px; margin: 12px 0; overflow: hidden; }
         .xp-fill { background: #4affb5; height: 100%; width: 0%; }
-        .faction-tag { background: #1f2a3a; border-radius: 40px; padding: 6px 12px; display: inline-block; font-size: 0.8rem; }
-        .shop-item { display: flex; justify-content: space-between; align-items: center; background: #1a1e28; margin-bottom: 12px; padding: 12px 16px; border-radius: 24px; }
-        .price { color: #ffd966; font-weight: bold; }
         .section { display: none; }
         .section.active-section { display: block; }
-        .toast-msg { position: fixed; bottom: 90px; left: 20px; right: 20px; max-width: 410px; margin: 0 auto; background: #1e2a2a; backdrop-filter: blur(12px); padding: 12px; border-radius: 60px; text-align: center; z-index: 30; font-weight: 500; border-left: 4px solid #4affb5; pointer-events: none; }
+        .toast-msg { position: fixed; bottom: 90px; left: 20px; right: 20px; background: #1e2a2a; backdrop-filter: blur(12px); padding: 12px; border-radius: 60px; text-align: center; z-index: 30; border-left: 4px solid #4affb5; pointer-events: none; }
         .ranking-list { list-style: none; }
         .ranking-list li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #262c3c; }
-
-        /* Кастомная иконка для маркера */
-        .custom-marker {
-            background: rgba(74,255,181,0.2);
-            border: 2px solid #4affb5;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
-            color: #4affb5;
-            backdrop-filter: blur(4px);
-            transition: 0.2s;
-        }
-        .custom-marker-weak { border-color: #6c8eff; background: rgba(108,142,255,0.2); color: #6c8eff; }
-        .custom-marker-strong { border-color: #ffb347; background: rgba(255,179,71,0.2); color: #ffb347; }
-        .custom-marker-encrypted { border-color: #c084fc; background: rgba(192,132,252,0.2); color: #c084fc; }
-        .custom-marker-black { border-color: #ff4d4d; background: rgba(255,77,77,0.2); color: #ff4d4d; }
-
-        /* Пульсация для ближайших */
-        .pulse {
-            animation: pulse-animation 1.5s infinite;
-        }
-        @keyframes pulse-animation {
-            0% { box-shadow: 0 0 0 0 rgba(74,255,181,0.6); }
-            70% { box-shadow: 0 0 0 12px rgba(74,255,181,0); }
-            100% { box-shadow: 0 0 0 0 rgba(74,255,181,0); }
-        }
+        .shop-item { display: flex; justify-content: space-between; align-items: center; background: #1a1e28; margin-bottom: 12px; padding: 12px 16px; border-radius: 24px; }
+        .price { color: #ffd966; font-weight: bold; }
+        .faction-tag { background: #1f2a3a; border-radius: 40px; padding: 6px 12px; display: inline-block; font-size: 0.8rem; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -108,16 +49,16 @@
     <div class="content" id="contentArea">
         <div id="mapSection" class="section active-section">
             <div class="card">
-                <div style="display: flex; justify-content: space-between;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
                     <span><strong>🗺️ Карта сигналов</strong></span>
                     <span style="font-size:0.7rem;">📍 ваше местоположение</span>
                 </div>
-                <div id="mapContainer"><div id="map"></div></div>
-                <div style="margin-top: 12px; font-size:0.75rem; color:#6c7a9e;">🔍 На карте отмечены активные сигналы. Нажмите на маркер, чтобы сканировать.</div>
-            </div>
-            <div class="card">
-                <div><strong>📡 Районы Минска</strong></div>
-                <div class="districts-grid" id="districtsContainer"></div>
+                <div id="mapContainer">
+                    <div id="map"></div>
+                </div>
+                <div style="margin-top: 12px; font-size:0.75rem; color:#6c7a9e;">
+                    🔍 На карте отмечены активные сигналы. Нажмите на маркер, чтобы сканировать.
+                </div>
             </div>
         </div>
         <div id="signalsSection" class="section"><div id="signalsList"></div></div>
@@ -145,7 +86,8 @@
             </div>
         </div>
         <div id="shopSection" class="section">
-            <div class="card"><h3>💎 ПРЕМИУМ ДОСТУП</h3>
+            <div class="card">
+                <h3>💎 ПРЕМИУМ ДОСТУП</h3>
                 <div class="shop-item"><span>🔓 Премиум подписка (месяц)</span><span class="price">499 ₽</span><button class="buy-premium">Купить</button></div>
                 <div class="shop-item"><span>📡 Эксклюзивный Black Signal</span><span class="price">249 ₽</span><button class="buy-signal">Купить</button></div>
                 <div class="shop-item"><span>⚡ Бустер опыта (+50% XP 1 день)</span><span class="price">149 ₽</span><button class="buy-booster">Купить</button></div>
@@ -167,7 +109,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion, onSnapshot, query, where, orderBy, limit, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Firebase config (замените при необходимости)
     const firebaseConfig = {
         apiKey: "AIzaSyAvqd3lQwvRecGNykyBncl-EKc0I5891UA",
         authDomain: "signal-game-27495.firebaseapp.com",
@@ -179,7 +120,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Telegram WebApp
     let tg = window.Telegram?.WebApp;
     let userData = { id: null, name: "Исследователь" };
     if (tg) {
@@ -213,37 +153,17 @@
         setTimeout(() => toast.remove(), duration);
     }
 
-    // Создание кастомной иконки маркера в зависимости от типа и расстояния
-    function getMarkerIcon(signalType, distance) {
-        let className = "custom-marker";
-        if (signalType === "weak") className += " custom-marker-weak";
-        else if (signalType === "strong") className += " custom-marker-strong";
-        else if (signalType === "encrypted") className += " custom-marker-encrypted";
-        else if (signalType === "black") className += " custom-marker-black";
-        // если расстояние меньше 100 м, добавляем пульсацию
-        const extraClass = (distance < 100) ? " pulse" : "";
-        const html = `<div class="${className}${extraClass}">📡</div>`;
-        return L.divIcon({ html: html, iconSize: [24,24], className: 'signal-div-icon' });
-    }
-
     function initMap() {
-        // Используем тёмный стиль карты (CartoDB Dark Matter)
         map = L.map('map').setView([53.9045, 27.5615], 13);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CartoDB',
-            subdomains: 'abcd',
-            minZoom: 0,
-            maxZoom: 20
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CartoDB'
         }).addTo(map);
-
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(
                 (pos) => {
                     userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                     if (userMarker) map.removeLayer(userMarker);
-                    // Кастомная иконка пользователя (синий круг)
-                    const userIcon = L.divIcon({ html: '<div style="background:#1e88e5; width:16px; height:16px; border-radius:50%; border:2px solid white; box-shadow:0 0 8px #1e88e5;"></div>', iconSize: [16,16], className: 'user-dot' });
-                    userMarker = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon }).addTo(map);
+                    userMarker = L.marker([userLocation.lat, userLocation.lng], { icon: L.divIcon({ html: '📍', iconSize: [24,24] }) }).addTo(map);
                     map.setView([userLocation.lat, userLocation.lng], 15);
                 },
                 (err) => console.warn(err),
@@ -265,19 +185,17 @@
                 const signal = { id: docSnap.id, ...docSnap.data() };
                 if (!signal.location?.latitude) return;
                 let distance = userLocation ? getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude) : 0;
-                const icon = getMarkerIcon(signal.type, distance);
-                const marker = L.marker([signal.location.latitude, signal.location.longitude], { icon: icon }).addTo(map);
-                marker.signalData = signal;
                 const popupContent = `
                     <div style="min-width:180px">
                         <strong>${signal.name}</strong><br>
-                        <span style="background:#2a2f3f; padding:2px 8px; border-radius:20px;">${signal.type?.toUpperCase() || "SIGNAL"}</span><br>
+                        <span style="background:#6c8eff; padding:2px 8px; border-radius:20px;">${signal.type?.toUpperCase() || "SIGNAL"}</span><br>
                         📍 ${Math.round(distance)} м<br>
                         🎁 +${signal.rewardXP} XP, ${signal.rewardItem || "предмет"}<br>
                         🔄 осталось: ${signal.usesLeft}<br>
                         <button class="claim-map-btn" data-id="${signal.id}" data-xp="${signal.rewardXP}" data-lat="${signal.location.latitude}" data-lng="${signal.location.longitude}">Сканировать</button>
                     </div>
                 `;
+                const marker = L.marker([signal.location.latitude, signal.location.longitude]).addTo(map);
                 marker.bindPopup(popupContent);
                 marker.on('popupopen', () => {
                     const btn = document.querySelector('.claim-map-btn');
@@ -317,7 +235,6 @@
         });
     }
 
-    // Транзакция с защитой от повторной активации и usesLeft
     async function claimSignal(signalId, rewardXP, signalLat, signalLng) {
         if (!userLocation) { showToast("Включите геолокацию", 2000); return; }
         const distance = getDistance(userLocation.lat, userLocation.lng, signalLat, signalLng);
@@ -326,18 +243,13 @@
             await runTransaction(db, async (transaction) => {
                 const signalRef = doc(db, "signals", signalId);
                 const signalSnap = await transaction.get(signalRef);
-                if (!signalSnap.exists() || signalSnap.data().usesLeft <= 0) {
-                    throw new Error("Сигнал уже исчерпан");
-                }
+                if (!signalSnap.exists() || signalSnap.data().usesLeft <= 0) throw new Error("Сигнал уже исчерпан");
                 const userRef = doc(db, "users", userData.id.toString());
                 const userSnap = await transaction.get(userRef);
                 const userSignalsTaken = userSnap.exists() ? (userSnap.data().signalsTaken || []) : [];
-                if (userSignalsTaken.includes(signalId)) {
-                    throw new Error("Вы уже активировали этот сигнал");
-                }
+                if (userSignalsTaken.includes(signalId)) throw new Error("Вы уже активировали этот сигнал");
                 const newUsesLeft = signalSnap.data().usesLeft - 1;
                 transaction.update(signalRef, { usesLeft: newUsesLeft });
-                
                 const existing = userSnap.exists() ? userSnap.data() : {};
                 const currentXP = typeof existing.xp === 'number' ? existing.xp : 0;
                 const level = typeof existing.level === 'number' ? existing.level : 1;
@@ -350,7 +262,6 @@
                 let newLevel = level;
                 if (newXP >= level * 1000) newLevel = level + 1;
                 const newSignalsTaken = [...userSignalsTaken, signalId];
-                
                 transaction.set(userRef, {
                     name: userData.name,
                     xp: newXP,
@@ -371,7 +282,7 @@
         }
     }
 
-    async function loadUserProfile() { /* ... без изменений ... */ 
+    async function loadUserProfile() {
         const userRef = doc(db, "users", userData.id.toString());
         const snap = await getDoc(userRef);
         if (snap.exists()) {
@@ -410,13 +321,6 @@
         let pos = 1;
         snap.forEach(doc => { const u = doc.data(); rankingDiv.innerHTML += `<li><span>${pos}. ${u.name}</span><span>Lvl ${u.level} | ${u.xp} XP</span></li>`; pos++; });
         if (snap.empty) rankingDiv.innerHTML = "<li>Нет игроков</li>";
-    }
-
-    function loadDistricts() {
-        const districts = [{name:"Центр",influence:78},{name:"Немига",influence:64},{name:"Парк Горького",influence:92},{name:"Троицкое",influence:55}];
-        const container = document.getElementById("districtsContainer");
-        container.innerHTML = "";
-        districts.forEach(d => { container.innerHTML += `<div class="district-card"><div class="district-name">${d.name}</div><div class="district-progress"><div class="district-fill" style="width:${d.influence}%"></div></div><div>влияние ${d.influence}%</div></div>`; });
     }
 
     function initFactionButtons() {
@@ -462,7 +366,6 @@
     subscribeSignals();
     loadUserProfile();
     loadRanking();
-    loadDistricts();
     initNavigation();
     initFactionButtons();
     bindShopEvents();
