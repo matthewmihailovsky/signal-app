@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SIGNAL — скрытый слой Минска</title>
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -14,8 +13,23 @@
         .header h1 { font-size: 1.8rem; background: linear-gradient(135deg, #fff, #a5f0ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .content { flex: 1; padding: 16px 16px 80px; overflow-y: auto; }
         .card { background: #171a23; border-radius: 28px; padding: 16px; margin-bottom: 18px; border: 1px solid rgba(255,255,255,0.05); }
-        #mapContainer { height: 500px; border-radius: 28px; overflow: hidden; margin-bottom: 16px; }
+        #mapContainer { height: 500px; border-radius: 28px; overflow: hidden; margin-bottom: 16px; position: relative; }
         #map { height: 100%; width: 100%; }
+        .locate-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 50%;
+            padding: 10px;
+            cursor: pointer;
+            border: 1px solid rgba(74,255,181,0.5);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            font-size: 1.2rem;
+        }
+        .locate-btn:active { transform: scale(0.95); }
         .signal-card { background: linear-gradient(135deg,#1a1e2a,#12151e); border-left: 3px solid #4affb5; margin-bottom: 12px; padding: 12px; border-radius: 16px; }
         .weak-signal { border-left-color: #6c8eff; }
         .rare-signal { border-left-color: #ffb347; }
@@ -37,39 +51,14 @@
         .shop-item { display: flex; justify-content: space-between; align-items: center; background: #1a1e28; margin-bottom: 12px; padding: 12px 16px; border-radius: 24px; }
         .price { color: #ffd966; font-weight: bold; }
         .faction-tag { background: #1f2a3a; border-radius: 40px; padding: 6px 12px; display: inline-block; font-size: 0.8rem; }
-
-        /* Стили для кастомных маркеров */
-        .custom-marker {
-            background: rgba(74, 255, 181, 0.9);
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 0 10px rgba(74, 255, 181, 0.8);
-            transition: transform 0.2s;
-        }
+        .custom-marker { background: rgba(74, 255, 181, 0.9); width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(74, 255, 181, 0.8); transition: transform 0.2s; }
         .custom-marker-weak { background: #6c8eff; box-shadow: 0 0 10px #6c8eff; }
         .custom-marker-strong { background: #ffb347; box-shadow: 0 0 10px #ffb347; }
         .custom-marker-encrypted { background: #c084fc; box-shadow: 0 0 10px #c084fc; }
         .custom-marker-black { background: #ff4d4d; box-shadow: 0 0 10px #ff4d4d; }
-
-        /* Стили для попапа (полупрозрачный, тёмный) */
-        .custom-popup .leaflet-popup-content-wrapper {
-            background: rgba(15, 17, 23, 0.95);
-            backdrop-filter: blur(12px);
-            border-radius: 20px;
-            border: 1px solid rgba(74, 255, 181, 0.3);
-            color: #eef2ff;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-        }
-        .custom-popup .leaflet-popup-tip {
-            background: rgba(15, 17, 23, 0.95);
-            border-top: 1px solid rgba(74, 255, 181, 0.3);
-        }
-        .custom-popup .leaflet-popup-close-button {
-            color: #eef2ff;
-            font-size: 18px;
-        }
+        .custom-popup .leaflet-popup-content-wrapper { background: rgba(15, 17, 23, 0.95); backdrop-filter: blur(12px); border-radius: 20px; border: 1px solid rgba(74, 255, 181, 0.3); color: #eef2ff; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
+        .custom-popup .leaflet-popup-tip { background: rgba(15, 17, 23, 0.95); border-top: 1px solid rgba(74, 255, 181, 0.3); }
+        .custom-popup .leaflet-popup-close-button { color: #eef2ff; font-size: 18px; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -89,6 +78,7 @@
                 </div>
                 <div id="mapContainer">
                     <div id="map"></div>
+                    <div class="locate-btn" id="locateMe">🎯</div>
                 </div>
                 <div style="margin-top: 12px; font-size:0.75rem; color:#6c7a9e;">
                     🔍 На карте отмечены активные сигналы. Нажмите на маркер, чтобы сканировать.
@@ -187,7 +177,6 @@
         setTimeout(() => toast.remove(), duration);
     }
 
-    // Функция для создания кастомного маркера в зависимости от типа сигнала
     function getMarkerIcon(signalType) {
         let colorClass = "custom-marker";
         if (signalType === "weak") colorClass = "custom-marker custom-marker-weak";
@@ -195,16 +184,10 @@
         else if (signalType === "encrypted") colorClass = "custom-marker custom-marker-encrypted";
         else if (signalType === "black") colorClass = "custom-marker custom-marker-black";
         else colorClass = "custom-marker";
-        
-        return L.divIcon({
-            className: colorClass,
-            iconSize: [24, 24],
-            popupAnchor: [0, -12]
-        });
+        return L.divIcon({ className: colorClass, iconSize: [24, 24], popupAnchor: [0, -12] });
     }
 
     function initMap() {
-        // Тёмная подложка CartoDB Dark
         map = L.map('map').setView([53.9045, 27.5615], 13);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CartoDB',
@@ -214,20 +197,27 @@
         }).addTo(map);
 
         if (navigator.geolocation) {
+            let firstLocation = true;
             navigator.geolocation.watchPosition(
                 (pos) => {
                     userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
                     if (userMarker) map.removeLayer(userMarker);
-                    // Маркер пользователя — светящаяся точка
                     userMarker = L.marker([userLocation.lat, userLocation.lng], {
                         icon: L.divIcon({ className: 'user-marker', html: '📍', iconSize: [24,24] })
                     }).addTo(map);
-                    map.setView([userLocation.lat, userLocation.lng], 15);
+                    if (firstLocation) {
+                        map.setView([userLocation.lat, userLocation.lng], 15);
+                        firstLocation = false;
+                    }
                 },
                 (err) => console.warn(err),
                 { enableHighAccuracy: true }
             );
         }
+
+        document.getElementById("locateMe")?.addEventListener("click", () => {
+            if (userLocation) map.setView([userLocation.lat, userLocation.lng], 15);
+        });
     }
 
     function subscribeSignals() {
@@ -266,7 +256,6 @@
                     }
                 });
                 currentSignalMarkers.push(marker);
-                
                 let typeClass = "weak-signal";
                 if (signal.type === "strong") typeClass = "rare-signal";
                 if (signal.type === "encrypted") typeClass = "ghost-signal";
