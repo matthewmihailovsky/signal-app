@@ -105,7 +105,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion, onSnapshot, query, where, orderBy, limit, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // ========== КОНФИГ FIREBASE (ЗАМЕНИТЕ ПРИ НЕОБХОДИМОСТИ) ==========
+    // ========== КОНФИГ FIREBASE ==========
     const firebaseConfig = {
         apiKey: "AIzaSyAvqd3lQwvRecGNykyBncl-EKc0I5891UA",
         authDomain: "signal-game-27495.firebaseapp.com",
@@ -134,7 +134,6 @@
     // ========== Глобальные переменные ==========
     let map, userMarker = null, userLocation = null, currentSignalMarkers = [], unsubscribeSignals = null;
 
-    // ========== Функции ==========
     function getDistance(lat1, lon1, lat2, lon2) {
         const R = 6371e3;
         const φ1 = lat1 * Math.PI/180, φ2 = lat2 * Math.PI/180;
@@ -153,7 +152,6 @@
         setTimeout(() => toast.remove(), duration);
     }
 
-    // Инициализация карты
     function initMap() {
         map = L.map('map').setView([53.9045, 27.5615], 13);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -173,24 +171,19 @@
         }
     }
 
-    // Подписка на сигналы (usesLeft > 0)
     function subscribeSignals() {
         if (unsubscribeSignals) unsubscribeSignals();
         const q = query(collection(db, "signals"), where("usesLeft", ">", 0));
         unsubscribeSignals = onSnapshot(q, (snapshot) => {
-            // Удаляем старые маркеры
             currentSignalMarkers.forEach(m => map.removeLayer(m));
             currentSignalMarkers = [];
             const signalsListDiv = document.getElementById("signalsList");
             signalsListDiv.innerHTML = "";
             if (snapshot.empty) signalsListDiv.innerHTML = `<div class="card">✨ Все сигналы расшифрованы. Жди новых...</div>`;
-            
             snapshot.forEach(docSnap => {
                 const signal = { id: docSnap.id, ...docSnap.data() };
                 if (!signal.location?.latitude) return;
                 let distance = userLocation ? getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude) : 0;
-                
-                // Попап на карте
                 const popupContent = `
                     <div style="min-width:180px">
                         <strong>${signal.name}</strong><br>
@@ -215,7 +208,6 @@
                 });
                 currentSignalMarkers.push(marker);
                 
-                // Список сигналов
                 let typeClass = "weak-signal";
                 if (signal.type === "strong") typeClass = "rare-signal";
                 if (signal.type === "encrypted") typeClass = "ghost-signal";
@@ -231,7 +223,6 @@
                     </div>
                 `;
             });
-            // Обработчики кнопок в списке
             document.querySelectorAll(".accept-signal-btn").forEach(btn => {
                 if (btn.hasListener) return;
                 btn.hasListener = true;
@@ -243,7 +234,7 @@
         });
     }
 
-    // Транзакция с уменьшением usesLeft
+    // Транзакция с проверкой на повторную активацию
     async function claimSignal(signalId, rewardXP, signalLat, signalLng) {
         if (!userLocation) { showToast("Включите геолокацию", 2000); return; }
         const distance = getDistance(userLocation.lat, userLocation.lng, signalLat, signalLng);
@@ -257,6 +248,12 @@
                 }
                 const userRef = doc(db, "users", userData.id.toString());
                 const userSnap = await transaction.get(userRef);
+                
+                // Проверка, не активировал ли игрок этот сигнал ранее
+                const userSignalsTaken = userSnap.exists() ? (userSnap.data().signalsTaken || []) : [];
+                if (userSignalsTaken.includes(signalId)) {
+                    throw new Error("Вы уже активировали этот сигнал");
+                }
                 
                 // Уменьшаем usesLeft
                 const newUsesLeft = signalSnap.data().usesLeft - 1;
@@ -275,11 +272,13 @@
                 let newLevel = level;
                 if (newXP >= level * 1000) newLevel = level + 1;
                 
+                const newSignalsTaken = [...userSignalsTaken, signalId];
+                
                 transaction.set(userRef, {
                     name: userData.name,
                     xp: newXP,
                     level: newLevel,
-                    signalsTaken: arrayUnion(signalId),
+                    signalsTaken: newSignalsTaken,
                     lastSeen: new Date(),
                     inventory: inventory,
                     faction: faction,
@@ -295,7 +294,6 @@
         }
     }
 
-    // Профиль и инвентарь
     async function loadUserProfile() {
         const userRef = doc(db, "users", userData.id.toString());
         const snap = await getDoc(userRef);
@@ -383,7 +381,6 @@
         document.querySelector(".nav-item[data-nav='map']").classList.add("active");
     }
 
-    // Запуск
     initMap();
     subscribeSignals();
     loadUserProfile();
