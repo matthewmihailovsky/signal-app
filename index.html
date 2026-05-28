@@ -132,7 +132,7 @@
         .banner-black { border: 2px solid #ff4d4d; box-shadow: 0 0 20px #ff4d4d; background: linear-gradient(135deg, #1a0f0f, #0a0c12); }
         .banner-black i { color: #ff4d4d; }
         .camera-close-ar { position: absolute; top: 20px; right: 20px; z-index: 200002; background: rgba(0,0,0,0.6); border-radius: 40px; padding: 8px 16px; font-size: 1.2rem; backdrop-filter: blur(8px); }
-        .open-case-btn { background: #ffd966; color: #0a0c12; margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; }
+        .open-case-btn { background: #ffd966; color: #0a0c12; margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; border-radius: 40px; }
         .reward-modal {
             position: fixed;
             top: 0;
@@ -203,7 +203,7 @@
         <p>скрытый слой города • urban MMORPG</p>
     </div>
     <div class="content" id="contentArea">
-        <!-- РАЗДЕЛ КАРТА -->
+        <!-- КАРТА -->
         <div id="mapSection" class="section active-section">
             <div class="card">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
@@ -219,7 +219,7 @@
                 </div>
             </div>
         </div>
-        <!-- РАЗДЕЛ СИГНАЛЫ -->
+        <!-- СИГНАЛЫ -->
         <div id="signalsSection" class="section">
             <div class="tabs">
                 <button class="tab-btn active" data-tab="active">Активные</button>
@@ -228,12 +228,12 @@
             <div id="activeSignalsList"></div>
             <div id="archiveSignalsList" style="display:none;"></div>
         </div>
-        <!-- РАЗДЕЛ ИНВЕНТАРЬ -->
+        <!-- ИНВЕНТАРЬ -->
         <div id="inventorySection" class="section">
             <div class="card"><h3>📦 ИНВЕНТАРЬ</h3><div id="inventoryItems" class="items-grid"></div></div>
             <div class="card"><h3>🏆 КОЛЛЕКЦИИ</h3><div id="collectionsBlock">🔹 Фрагменты будут открываться после сигналов</div></div>
         </div>
-        <!-- РАЗДЕЛ ПРОФИЛЬ -->
+        <!-- ПРОФИЛЬ -->
         <div id="profileSection" class="section">
             <div class="card">
                 <div style="display: flex; justify-content: space-between;"><div><span style="font-size:1.6rem;">👤</span> <strong id="profileUsername">Исследователь</strong></div><div class="faction-tag" id="profileFactionTag">❌ Без фракции</div></div>
@@ -253,7 +253,7 @@
                 <div id="reputationInfo" style="margin-top:12px;"></div>
             </div>
         </div>
-        <!-- РАЗДЕЛ МАГАЗИН -->
+        <!-- МАГАЗИН -->
         <div id="shopSection" class="section">
             <div class="card">
                 <h3>💎 ПРЕМИУМ ДОСТУП</h3>
@@ -282,7 +282,7 @@
         <button class="camera-close-ar" id="closeCameraBtn">✖ Закрыть</button>
     </div>
 
-    <!-- МОДАЛКА НАГРАДЫ (при открытии кейса) -->
+    <!-- МОДАЛКА НАГРАДЫ (открытие кейса) -->
     <div id="rewardModal" class="reward-modal">
         <div class="reward-card">
             <div class="reward-image"><i class="fas fa-gem"></i></div>
@@ -405,7 +405,6 @@
         });
     }
 
-    // Псевдо-AR баннер
     function createBannerForSignal(signal) {
         const type = signal.type || 'weak';
         let iconClass = 'fa-signal';
@@ -472,16 +471,19 @@
         currentPendingSignal = null;
     }
 
-    // Управление инвентарём (предметы и кейсы)
-    function addToInventory(inventory, itemName, caseId = null) {
+    function addToInventory(inventory, itemName, caseId = null, imageUrl = null) {
         if (caseId) {
             const existing = inventory.find(i => i.type === "case" && i.caseId === caseId);
             if (existing) existing.count++;
             else inventory.push({ type: "case", caseId, count: 1 });
         } else if (itemName) {
             const existing = inventory.find(i => i.type === "item" && i.name === itemName);
-            if (existing) existing.count++;
-            else inventory.push({ type: "item", name: itemName, count: 1 });
+            if (existing) {
+                existing.count++;
+                if (imageUrl && !existing.imageUrl) existing.imageUrl = imageUrl;
+            } else {
+                inventory.push({ type: "item", name: itemName, count: 1, imageUrl: imageUrl || null });
+            }
         }
         return inventory;
     }
@@ -514,7 +516,7 @@
                 if (caseId) {
                     inventory = addToInventory(inventory, null, caseId);
                 } else if (signalSnap.data().rewardItem) {
-                    inventory = addToInventory(inventory, signalSnap.data().rewardItem, null);
+                    inventory = addToInventory(inventory, signalSnap.data().rewardItem, null, signalSnap.data().itemImageUrl || null);
                 }
                 
                 let newXP = currentXP + xpGain;
@@ -542,7 +544,6 @@
         }
     }
 
-    // ОТКРЫТИЕ КЕЙСА С МОДАЛЬНЫМ ОКНОМ
     async function openCase(caseId) {
         const caseRef = doc(db, "cases", caseId);
         const caseSnap = await getDoc(caseRef);
@@ -599,9 +600,15 @@
                 if (inventory[caseIndex].count === 0) inventory.splice(caseIndex, 1);
             }
             if (window.pendingReward.rewardItem) {
-                const itemIndex = inventory.findIndex(i => i.type === "item" && i.name === window.pendingReward.rewardItem);
-                if (itemIndex !== -1) inventory[itemIndex].count++;
-                else inventory.push({ type: "item", name: window.pendingReward.rewardItem, count: 1 });
+                const itemName = window.pendingReward.rewardItem;
+                const imageUrl = window.pendingReward.imageUrl || null;
+                const itemIndex = inventory.findIndex(i => i.type === "item" && i.name === itemName);
+                if (itemIndex !== -1) {
+                    inventory[itemIndex].count++;
+                    if (imageUrl && !inventory[itemIndex].imageUrl) inventory[itemIndex].imageUrl = imageUrl;
+                } else {
+                    inventory.push({ type: "item", name: itemName, count: 1, imageUrl: imageUrl });
+                }
             }
             let newXP = (userSnap.data().xp || 0) + (window.pendingReward.rewardXP || 0);
             await updateDoc(userRef, { inventory, xp: newXP });
@@ -612,7 +619,6 @@
         };
     }
 
-    // Отображение активных сигналов (карта + список)
     function renderActiveSignals() {
         if (!map) return;
         currentSignalMarkers.forEach(m => map.removeLayer(m));
@@ -818,7 +824,13 @@
             const caseCache = new Map();
             for (const inv of inventory) {
                 if (inv.type === "item") {
-                    invDiv.innerHTML += `<div class="item"><strong>${inv.name}</strong><br>×${inv.count}</div>`;
+                    const imgHtml = inv.imageUrl ? `<img src="${inv.imageUrl}" style="width: 36px; height: 36px; object-fit: contain; display: block; margin: 0 auto 8px;">` : `<i class="fas fa-cube" style="font-size: 32px; margin-bottom: 8px;"></i>`;
+                    invDiv.innerHTML += `
+                        <div class="item">
+                            ${imgHtml}
+                            <strong>${inv.name}</strong><br>×${inv.count}
+                        </div>
+                    `;
                 } else if (inv.type === "case") {
                     let caseData = caseCache.get(inv.caseId);
                     if (!caseData) {
@@ -828,6 +840,7 @@
                     }
                     invDiv.innerHTML += `
                         <div class="item case-item">
+                            <i class="fas fa-gift" style="font-size: 32px; margin-bottom: 8px;"></i><br>
                             <strong>📦 ${caseData.name}</strong><br>×${inv.count}
                             <button class="open-case-btn" data-case-id="${inv.caseId}">Открыть</button>
                         </div>
