@@ -99,7 +99,7 @@
             text-align: center;
             color: #ff9999;
         }
-        /* Камера модалка с баннером */
+        /* Камера и баннеры с улучшениями */
         .camera-modal {
             position: fixed;
             top: 0;
@@ -122,31 +122,57 @@
             height: 100%;
             object-fit: cover;
         }
+        /* Базовый стиль баннера с 3D-перспективой */
         .ar-banner {
             position: relative;
             z-index: 200001;
             background: linear-gradient(135deg, rgba(15,17,23,0.95), rgba(0,0,0,0.85));
             backdrop-filter: blur(16px);
             border-radius: 32px;
-            border: 2px solid rgba(74,255,181,0.8);
-            box-shadow: 0 0 40px rgba(74,255,181,0.4);
             padding: 24px 32px;
             text-align: center;
             width: 80%;
             max-width: 320px;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: transform 0.1s ease, box-shadow 0.2s;
             animation: float 2s infinite ease-in-out;
+            transform-style: preserve-3d;
+            will-change: transform;
+            box-shadow: 0 0 30px rgba(74,255,181,0.3);
         }
         .ar-banner:active { transform: scale(0.96); }
-        .ar-banner i { font-size: 4rem; color: #4affb5; margin-bottom: 12px; }
+        .ar-banner i { font-size: 4rem; margin-bottom: 12px; }
         .ar-banner h3 { font-size: 1.6rem; margin-bottom: 8px; }
         .ar-banner p { font-size: 0.9rem; color: #ccc; }
+        /* Частицы (вращающийся ореол) */
+        .ar-banner::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: -20px;
+            right: -20px;
+            bottom: -20px;
+            background: radial-gradient(circle, rgba(74,255,181,0.2), transparent);
+            border-radius: 48px;
+            z-index: -1;
+            animation: spin 6s linear infinite;
+            pointer-events: none;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
         @keyframes float {
             0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
+            50% { transform: translateY(-8px); }
             100% { transform: translateY(0px); }
         }
+        /* Разные типы баннеров */
+        .banner-weak { border: 2px solid #6c8eff; box-shadow: 0 0 20px #6c8eff; }
+        .banner-weak i { color: #6c8eff; }
+        .banner-strong { border: 2px solid #ffb347; box-shadow: 0 0 20px #ffb347; }
+        .banner-strong i { color: #ffb347; }
+        .banner-encrypted { border: 2px solid #c084fc; box-shadow: 0 0 20px #c084fc; }
+        .banner-encrypted i { color: #c084fc; }
+        .banner-black { border: 2px solid #ff4d4d; box-shadow: 0 0 20px #ff4d4d; background: linear-gradient(135deg, #1a0f0f, #0a0c12); }
+        .banner-black i { color: #ff4d4d; }
         .camera-close-ar {
             position: absolute;
             top: 20px;
@@ -169,6 +195,7 @@
         <p>скрытый слой города • urban MMORPG</p>
     </div>
     <div class="content" id="contentArea">
+        <!-- Карта, список сигналов и пр. (как в предыдущей версии) -->
         <div id="mapSection" class="section active-section">
             <div class="card">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
@@ -235,14 +262,10 @@
         <div id="detailContent"></div>
     </div>
 
-    <!-- Псевдо-AR камера с баннером -->
+    <!-- Камера с баннером (динамическое создание контента) -->
     <div id="cameraModal" class="camera-modal">
         <video id="arVideo" class="camera-video" autoplay playsinline muted></video>
-        <div class="ar-banner" id="arBanner">
-            <i class="fas fa-gem"></i>
-            <h3>НАГРАДА</h3>
-            <p>Нажмите, чтобы забрать</p>
-        </div>
+        <div id="arBannerContainer"></div>
         <button class="camera-close-ar" id="closeCameraBtn">✖ Закрыть</button>
     </div>
 
@@ -288,7 +311,8 @@
     let allActiveSignals = [];
     let expiryWatcherInterval = null;
     let currentStream = null;
-    let currentPendingSignal = null; // сигнал, который сейчас сканируется
+    let currentPendingSignal = null;
+    let orientationHandler = null;
 
     function getDistance(lat1, lon1, lat2, lon2) {
         const R = 6371e3;
@@ -357,11 +381,31 @@
         });
     }
 
+    // Создание баннера с учётом типа сигнала
+    function createBannerForSignal(signal) {
+        const type = signal.type || 'weak';
+        let iconClass = 'fa-signal';
+        let title = 'НАГРАДА';
+        let description = 'Нажмите, чтобы забрать';
+        if (type === 'weak') iconClass = 'fa-signal';
+        else if (type === 'strong') iconClass = 'fa-bolt';
+        else if (type === 'encrypted') iconClass = 'fa-lock';
+        else if (type === 'black') iconClass = 'fa-skull';
+        
+        const bannerDiv = document.createElement('div');
+        bannerDiv.className = `ar-banner banner-${type}`;
+        bannerDiv.innerHTML = `
+            <i class="fas ${iconClass}"></i>
+            <h3>${title}</h3>
+            <p>${description}</p>
+        `;
+        return bannerDiv;
+    }
+
     async function startCameraWithBanner(signal) {
         currentPendingSignal = signal;
         const modal = document.getElementById("cameraModal");
         const video = document.getElementById("arVideo");
-        // останавливаем предыдущий поток
         if (currentStream) {
             currentStream.getTracks().forEach(track => track.stop());
         }
@@ -369,6 +413,28 @@
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
             currentStream = stream;
             video.srcObject = stream;
+            
+            // Создаём баннер
+            const container = document.getElementById("arBannerContainer");
+            container.innerHTML = '';
+            const banner = createBannerForSignal(signal);
+            container.appendChild(banner);
+            
+            // Добавляем эффект 3D-наклона
+            if (orientationHandler) window.removeEventListener('deviceorientation', orientationHandler);
+            orientationHandler = (e) => {
+                if (!banner) return;
+                const gamma = e.gamma || 0; // -90..90
+                const beta = e.beta || 0;   // -90..90
+                const rotateY = gamma / 4;
+                const rotateX = beta / 4;
+                banner.style.transform = `perspective(600px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-8px)`;
+            };
+            window.addEventListener('deviceorientation', orientationHandler);
+            
+            // Обработчик клика по баннеру (используем делегирование)
+            banner.addEventListener('click', () => claimSignalFromAR());
+            
             modal.classList.add("active");
         } catch (err) {
             console.error(err);
@@ -379,7 +445,6 @@
     async function claimSignalFromAR() {
         if (!currentPendingSignal) return;
         const signal = currentPendingSignal;
-        // проверяем ещё раз расстояние (на случай если отошёл)
         if (!userLocation) {
             showToast("Включите геолокацию", true);
             closeCamera();
@@ -401,7 +466,6 @@
             closeCamera();
             document.getElementById("detailScreen").classList.remove("active");
         } else {
-            // ошибка уже показана внутри claimSignal
             closeCamera();
         }
     }
@@ -410,6 +474,10 @@
         if (currentStream) {
             currentStream.getTracks().forEach(track => track.stop());
             currentStream = null;
+        }
+        if (orientationHandler) {
+            window.removeEventListener('deviceorientation', orientationHandler);
+            orientationHandler = null;
         }
         const video = document.getElementById("arVideo");
         if (video) video.srcObject = null;
@@ -480,7 +548,6 @@
                     showToast(`Вы слишком далеко: ${Math.round(dist)} м`, true);
                     return;
                 }
-                // Открываем камеру с баннером вместо прямого claim
                 await startCameraWithBanner(signal);
             };
         }
@@ -767,8 +834,6 @@
             if (currentTimerInterval) clearInterval(currentTimerInterval);
             document.getElementById("detailScreen").classList.remove("active");
         });
-        // Обработчики для камеры
-        document.getElementById("arBanner").addEventListener("click", () => claimSignalFromAR());
         document.getElementById("closeCameraBtn").addEventListener("click", () => closeCamera());
     }
 
