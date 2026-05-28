@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Все стили остаются как в предыдущей версии (с AR-баннером), плюс добавим стили для кейсов */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #0a0c12; font-family: 'Inter', system-ui, sans-serif; color: #eef2ff; overflow-x: hidden; }
         .app { max-width: 450px; margin: 0 auto; background: #0f1117; min-height: 100vh; display: flex; flex-direction: column; }
@@ -134,6 +133,65 @@
         .banner-black i { color: #ff4d4d; }
         .camera-close-ar { position: absolute; top: 20px; right: 20px; z-index: 200002; background: rgba(0,0,0,0.6); border-radius: 40px; padding: 8px 16px; font-size: 1.2rem; backdrop-filter: blur(8px); }
         .open-case-btn { background: #ffd966; color: #0a0c12; margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; }
+        .reward-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            z-index: 300000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        .reward-modal.active { display: flex; }
+        .reward-card {
+            background: linear-gradient(135deg, #1e2330, #0f1117);
+            border-radius: 48px;
+            padding: 28px 24px;
+            text-align: center;
+            width: 80%;
+            max-width: 320px;
+            border: 2px solid #4affb5;
+            box-shadow: 0 0 40px rgba(74,255,181,0.5);
+            animation: bounceIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            80% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .reward-card .reward-image {
+            font-size: 5rem;
+            margin-bottom: 16px;
+        }
+        .reward-card img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 10px #4affb5);
+        }
+        .reward-card h3 {
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+            color: #ffd966;
+        }
+        .reward-card p {
+            font-size: 1rem;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+        .reward-card button {
+            background: #4affb5;
+            color: #0a0c12;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 40px;
+            border: none;
+            cursor: pointer;
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -145,6 +203,7 @@
         <p>скрытый слой города • urban MMORPG</p>
     </div>
     <div class="content" id="contentArea">
+        <!-- РАЗДЕЛ КАРТА -->
         <div id="mapSection" class="section active-section">
             <div class="card">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
@@ -160,6 +219,7 @@
                 </div>
             </div>
         </div>
+        <!-- РАЗДЕЛ СИГНАЛЫ -->
         <div id="signalsSection" class="section">
             <div class="tabs">
                 <button class="tab-btn active" data-tab="active">Активные</button>
@@ -168,10 +228,12 @@
             <div id="activeSignalsList"></div>
             <div id="archiveSignalsList" style="display:none;"></div>
         </div>
+        <!-- РАЗДЕЛ ИНВЕНТАРЬ -->
         <div id="inventorySection" class="section">
             <div class="card"><h3>📦 ИНВЕНТАРЬ</h3><div id="inventoryItems" class="items-grid"></div></div>
             <div class="card"><h3>🏆 КОЛЛЕКЦИИ</h3><div id="collectionsBlock">🔹 Фрагменты будут открываться после сигналов</div></div>
         </div>
+        <!-- РАЗДЕЛ ПРОФИЛЬ -->
         <div id="profileSection" class="section">
             <div class="card">
                 <div style="display: flex; justify-content: space-between;"><div><span style="font-size:1.6rem;">👤</span> <strong id="profileUsername">Исследователь</strong></div><div class="faction-tag" id="profileFactionTag">❌ Без фракции</div></div>
@@ -191,6 +253,7 @@
                 <div id="reputationInfo" style="margin-top:12px;"></div>
             </div>
         </div>
+        <!-- РАЗДЕЛ МАГАЗИН -->
         <div id="shopSection" class="section">
             <div class="card">
                 <h3>💎 ПРЕМИУМ ДОСТУП</h3>
@@ -203,6 +266,7 @@
         </div>
     </div>
 
+    <!-- ДЕТАЛЬНЫЙ ЭКРАН СИГНАЛА -->
     <div id="detailScreen" class="detail-screen">
         <div class="detail-header">
             <h2>Детали сигнала</h2>
@@ -211,10 +275,21 @@
         <div id="detailContent"></div>
     </div>
 
+    <!-- КАМЕРА С БАННЕРОМ -->
     <div id="cameraModal" class="camera-modal">
         <video id="arVideo" class="camera-video" autoplay playsinline muted></video>
         <div id="arBannerContainer"></div>
         <button class="camera-close-ar" id="closeCameraBtn">✖ Закрыть</button>
+    </div>
+
+    <!-- МОДАЛКА НАГРАДЫ (при открытии кейса) -->
+    <div id="rewardModal" class="reward-modal">
+        <div class="reward-card">
+            <div class="reward-image"><i class="fas fa-gem"></i></div>
+            <h3 id="rewardTitle">Награда</h3>
+            <p id="rewardDesc"></p>
+            <button id="closeRewardBtn">Забрать</button>
+        </div>
     </div>
 
     <div class="bottom-nav">
@@ -262,6 +337,7 @@
     let currentPendingSignal = null;
     let orientationHandler = null;
 
+    // ========== ОСНОВНЫЕ ФУНКЦИИ ==========
     function getDistance(lat1, lon1, lat2, lon2) {
         const R = 6371e3;
         const φ1 = lat1 * Math.PI/180, φ2 = lat2 * Math.PI/180;
@@ -329,6 +405,7 @@
         });
     }
 
+    // Псевдо-AR баннер
     function createBannerForSignal(signal) {
         const type = signal.type || 'weak';
         let iconClass = 'fa-signal';
@@ -395,10 +472,9 @@
         currentPendingSignal = null;
     }
 
-    // Новая функция добавления/обновления инвентаря
+    // Управление инвентарём (предметы и кейсы)
     function addToInventory(inventory, itemName, caseId = null) {
         if (caseId) {
-            // добавляем кейс
             const existing = inventory.find(i => i.type === "case" && i.caseId === caseId);
             if (existing) existing.count++;
             else inventory.push({ type: "case", caseId, count: 1 });
@@ -433,17 +509,12 @@
                 const faction = existing.faction || null;
                 const reputation = (existing.reputation && typeof existing.reputation === 'object') ? existing.reputation : {};
                 
-                let rewardItem = signalSnap.data().rewardItem;
+                let xpGain = rewardXP || 0;
                 let caseId = rewardCaseId || signalSnap.data().rewardCaseId;
-                let xpGain = rewardXP;
-                
-                // Добавляем награду в инвентарь (кейс или предмет)
                 if (caseId) {
                     inventory = addToInventory(inventory, null, caseId);
-                    xpGain = rewardXP || 0;
-                } else if (rewardItem) {
-                    inventory = addToInventory(inventory, rewardItem, null);
-                    xpGain = rewardXP || 0;
+                } else if (signalSnap.data().rewardItem) {
+                    inventory = addToInventory(inventory, signalSnap.data().rewardItem, null);
                 }
                 
                 let newXP = currentXP + xpGain;
@@ -471,6 +542,7 @@
         }
     }
 
+    // ОТКРЫТИЕ КЕЙСА С МОДАЛЬНЫМ ОКНОМ
     async function openCase(caseId) {
         const caseRef = doc(db, "cases", caseId);
         const caseSnap = await getDoc(caseRef);
@@ -483,7 +555,6 @@
             showToast("Кейс пуст", true);
             return;
         }
-        // Выбор случайного предмета по весам
         const totalWeight = caseData.items.reduce((sum, i) => sum + i.weight, 0);
         let random = Math.random() * totalWeight;
         let selected = null;
@@ -496,68 +567,52 @@
         }
         if (!selected) return;
         
-        // Обновление пользователя
-        const userRef = doc(db, "users", userData.id.toString());
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) return;
-        let inventory = userSnap.data().inventory || [];
-        const caseIndex = inventory.findIndex(i => i.type === "case" && i.caseId === caseId);
-        if (caseIndex === -1 || inventory[caseIndex].count <= 0) {
-            showToast("У вас нет этого кейса", true);
-            return;
-        }
-        // Уменьшаем количество кейсов
-        inventory[caseIndex].count--;
-        if (inventory[caseIndex].count === 0) inventory.splice(caseIndex, 1);
+        // Показать модальное окно
+        const modal = document.getElementById("rewardModal");
+        const rewardTitle = document.getElementById("rewardTitle");
+        const rewardDesc = document.getElementById("rewardDesc");
+        const rewardImageDiv = document.querySelector("#rewardModal .reward-image");
         
-        // Добавляем награду
-        if (selected.rewardItem) {
-            const itemIndex = inventory.findIndex(i => i.type === "item" && i.name === selected.rewardItem);
-            if (itemIndex !== -1) inventory[itemIndex].count++;
-            else inventory.push({ type: "item", name: selected.rewardItem, count: 1 });
+        if (selected.imageUrl) {
+            rewardImageDiv.innerHTML = `<img src="${selected.imageUrl}" alt="reward">`;
+        } else {
+            rewardImageDiv.innerHTML = `<i class="fas fa-gem"></i>`;
         }
-        let newXP = userSnap.data().xp || 0;
-        if (selected.rewardXP) newXP += selected.rewardXP;
+        rewardTitle.innerText = selected.itemName;
+        let descText = `+${selected.rewardXP || 0} XP`;
+        if (selected.rewardItem) descText += `, ${selected.rewardItem}`;
+        rewardDesc.innerText = descText;
+        modal.classList.add("active");
         
-        await updateDoc(userRef, { inventory, xp: newXP });
-        showToast(`🎁 Вы открыли кейс и получили: ${selected.itemName || selected.rewardItem}${selected.rewardXP ? ` +${selected.rewardXP} XP` : ''}`);
-        loadUserProfile();
-    }
-
-    async function loadArchive() {
-        const userRef = doc(db, "users", userData.id.toString());
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) {
-            document.getElementById("archiveSignalsList").innerHTML = `<div class="card">Вы пока не приняли ни одного сигнала.</div>`;
-            return;
-        }
-        const takenIds = userSnap.data().signalsTaken || [];
-        if (takenIds.length === 0) {
-            document.getElementById("archiveSignalsList").innerHTML = `<div class="card">Вы пока не приняли ни одного сигнала.</div>`;
-            return;
-        }
-        const signalsPromises = takenIds.map(id => getDoc(doc(db, "signals", id)));
-        const signalsSnaps = await Promise.all(signalsPromises);
-        let html = '';
-        signalsSnaps.forEach(snap => {
-            if (snap.exists()) {
-                const s = snap.data();
-                let iconClass = 'fa-signal';
-                if (s.type === 'strong') iconClass = 'fa-bolt';
-                else if (s.type === 'encrypted') iconClass = 'fa-lock';
-                else if (s.type === 'black') iconClass = 'fa-skull';
-                html += `
-                    <div class="card signal-card ${s.type === 'weak' ? 'weak-signal' : (s.type === 'strong' ? 'rare-signal' : 'ghost-signal')}">
-                        <div><i class="fas ${iconClass}" style="margin-right:6px;"></i> <strong>${s.name}</strong> (${s.type?.toUpperCase()})</div>
-                        <div>🎁 +${s.rewardXP} XP, ${s.rewardItem || 'предмет'}</div>
-                        <div>📅 Активирован</div>
-                    </div>
-                `;
+        window.pendingReward = selected;
+        window.pendingCaseId = caseId;
+        
+        document.getElementById("closeRewardBtn").onclick = async () => {
+            modal.classList.remove("active");
+            const userRef = doc(db, "users", userData.id.toString());
+            const userSnap = await getDoc(userRef);
+            if (!userSnap.exists()) return;
+            let inventory = userSnap.data().inventory || [];
+            const caseIndex = inventory.findIndex(i => i.type === "case" && i.caseId === caseId);
+            if (caseIndex !== -1) {
+                inventory[caseIndex].count--;
+                if (inventory[caseIndex].count === 0) inventory.splice(caseIndex, 1);
             }
-        });
-        document.getElementById("archiveSignalsList").innerHTML = html;
+            if (window.pendingReward.rewardItem) {
+                const itemIndex = inventory.findIndex(i => i.type === "item" && i.name === window.pendingReward.rewardItem);
+                if (itemIndex !== -1) inventory[itemIndex].count++;
+                else inventory.push({ type: "item", name: window.pendingReward.rewardItem, count: 1 });
+            }
+            let newXP = (userSnap.data().xp || 0) + (window.pendingReward.rewardXP || 0);
+            await updateDoc(userRef, { inventory, xp: newXP });
+            showToast(`Вы получили ${window.pendingReward.itemName}!`);
+            loadUserProfile();
+            window.pendingReward = null;
+            window.pendingCaseId = null;
+        };
     }
 
+    // Отображение активных сигналов (карта + список)
     function renderActiveSignals() {
         if (!map) return;
         currentSignalMarkers.forEach(m => map.removeLayer(m));
@@ -599,12 +654,13 @@
             
             const cardDiv = document.createElement('div');
             cardDiv.className = `card signal-card ${signal.type === 'weak' ? 'weak-signal' : (signal.type === 'strong' ? 'rare-signal' : 'ghost-signal')}`;
+            let rewardText = signal.rewardItem || (signal.rewardCaseId ? `Кейс: ${signal.rewardCaseId}` : 'предмет');
             cardDiv.innerHTML = `
                 <div><i class="fas ${iconClass}"></i> <strong>${signal.type?.toUpperCase()}</strong> <span style="font-size:0.7rem;">осталось: ${signal.usesLeft}</span></div>
                 <div>📍 ${signal.name}</div>
                 <div>📏 ${Math.round(distance)} м</div>
                 <div style="display:flex; justify-content: space-between; margin-top:12px;">
-                    <span>🎁 +${signal.rewardXP} XP, ${signal.rewardItem || (signal.rewardCaseId ? `Кейс: ${signal.rewardCaseId}` : 'предмет')}</span>
+                    <span>🎁 +${signal.rewardXP} XP, ${rewardText}</span>
                     <button class="primary detail-list-btn">Детали</button>
                 </div>
             `;
@@ -627,6 +683,7 @@
         
         function render() {
             const timeLeft = formatTimeLeft(signal.expiresAt);
+            let rewardText = signal.rewardItem || (signal.rewardCaseId ? `Кейс: ${signal.rewardCaseId}` : 'предмет');
             document.getElementById("detailContent").innerHTML = `
                 <div class="detail-badge" style="background:${typeColor}20; color:${typeColor}; border:1px solid ${typeColor}">
                     ${typeText} ${signal.type === 'weak' ? '⚡' : (signal.type === 'strong' ? '💪' : (signal.type === 'encrypted' ? '🔒' : '🌑'))}
@@ -642,7 +699,7 @@
                     <i class="fas fa-hourglass-half"></i> <span id="detailTimer">⏱️ Истекает: ${timeLeft}</span>
                 </div>
                 <div class="detail-info-row">
-                    <i class="fas fa-gift"></i> <span>+${signal.rewardXP} XP, ${signal.rewardItem || (signal.rewardCaseId ? `Кейс: ${signal.rewardCaseId}` : 'предмет')}</span>
+                    <i class="fas fa-gift"></i> <span>+${signal.rewardXP} XP, ${rewardText}</span>
                 </div>
                 <div id="detailError" style="display:none;" class="error-message-inline"></div>
                 <div class="action-buttons">
@@ -692,9 +749,38 @@
         document.getElementById("detailScreen").classList.add("active");
     }
 
-    function startExpiryWatcher() {
-        if (expiryWatcherInterval) clearInterval(expiryWatcherInterval);
-        expiryWatcherInterval = setInterval(() => renderActiveSignals(), 5000);
+    async function loadArchive() {
+        const userRef = doc(db, "users", userData.id.toString());
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+            document.getElementById("archiveSignalsList").innerHTML = `<div class="card">Вы пока не приняли ни одного сигнала.</div>`;
+            return;
+        }
+        const takenIds = userSnap.data().signalsTaken || [];
+        if (takenIds.length === 0) {
+            document.getElementById("archiveSignalsList").innerHTML = `<div class="card">Вы пока не приняли ни одного сигнала.</div>`;
+            return;
+        }
+        const signalsPromises = takenIds.map(id => getDoc(doc(db, "signals", id)));
+        const signalsSnaps = await Promise.all(signalsPromises);
+        let html = '';
+        signalsSnaps.forEach(snap => {
+            if (snap.exists()) {
+                const s = snap.data();
+                let iconClass = 'fa-signal';
+                if (s.type === 'strong') iconClass = 'fa-bolt';
+                else if (s.type === 'encrypted') iconClass = 'fa-lock';
+                else if (s.type === 'black') iconClass = 'fa-skull';
+                html += `
+                    <div class="card signal-card ${s.type === 'weak' ? 'weak-signal' : (s.type === 'strong' ? 'rare-signal' : 'ghost-signal')}">
+                        <div><i class="fas ${iconClass}" style="margin-right:6px;"></i> <strong>${s.name}</strong> (${s.type?.toUpperCase()})</div>
+                        <div>🎁 +${s.rewardXP} XP, ${s.rewardItem || 'предмет'}</div>
+                        <div>📅 Активирован</div>
+                    </div>
+                `;
+            }
+        });
+        document.getElementById("archiveSignalsList").innerHTML = html;
     }
 
     function subscribeSignals() {
@@ -709,7 +795,8 @@
             });
             renderActiveSignals();
         });
-        startExpiryWatcher();
+        if (expiryWatcherInterval) clearInterval(expiryWatcherInterval);
+        expiryWatcherInterval = setInterval(() => renderActiveSignals(), 5000);
     }
 
     async function loadUserProfile() {
@@ -728,7 +815,6 @@
             const inventory = data.inventory || [];
             const invDiv = document.getElementById("inventoryItems");
             invDiv.innerHTML = "";
-            // Кэшируем данные кейсов (просто чтобы не грузить базу повторно)
             const caseCache = new Map();
             for (const inv of inventory) {
                 if (inv.type === "item") {
