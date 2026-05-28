@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* Все стили остаются как в предыдущей версии (с AR-баннером), плюс добавим стили для кейсов */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #0a0c12; font-family: 'Inter', system-ui, sans-serif; color: #eef2ff; overflow-x: hidden; }
         .app { max-width: 450px; margin: 0 auto; background: #0f1117; min-height: 100vh; display: flex; flex-direction: column; }
@@ -31,6 +32,7 @@
         .nav-item.active { color: #4affb5; }
         .items-grid { display: flex; flex-wrap: wrap; gap: 12px; }
         .item { background: #1e2330; border-radius: 20px; padding: 10px 14px; text-align: center; flex: 1 0 80px; }
+        .case-item { border: 1px solid #ffd966; background: #2a2518; }
         .xp-bar { background: #262c3c; border-radius: 30px; height: 12px; margin: 12px 0; overflow: hidden; }
         .xp-fill { background: #4affb5; height: 100%; width: 0%; }
         .section { display: none; }
@@ -99,7 +101,6 @@
             text-align: center;
             color: #ff9999;
         }
-        /* Камера и баннеры с улучшениями */
         .camera-modal {
             position: fixed;
             top: 0;
@@ -114,57 +115,15 @@
             align-items: center;
         }
         .camera-modal.active { display: flex; }
-        .camera-video {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        /* Базовый стиль баннера с 3D-перспективой */
-        .ar-banner {
-            position: relative;
-            z-index: 200001;
-            background: linear-gradient(135deg, rgba(15,17,23,0.95), rgba(0,0,0,0.85));
-            backdrop-filter: blur(16px);
-            border-radius: 32px;
-            padding: 24px 32px;
-            text-align: center;
-            width: 80%;
-            max-width: 320px;
-            cursor: pointer;
-            transition: transform 0.1s ease, box-shadow 0.2s;
-            animation: float 2s infinite ease-in-out;
-            transform-style: preserve-3d;
-            will-change: transform;
-            box-shadow: 0 0 30px rgba(74,255,181,0.3);
-        }
+        .camera-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+        .ar-banner { position: relative; z-index: 200001; background: linear-gradient(135deg, rgba(15,17,23,0.95), rgba(0,0,0,0.85)); backdrop-filter: blur(16px); border-radius: 32px; padding: 24px 32px; text-align: center; width: 80%; max-width: 320px; cursor: pointer; transition: transform 0.1s ease; animation: float 2s infinite ease-in-out; transform-style: preserve-3d; will-change: transform; box-shadow: 0 0 30px rgba(74,255,181,0.3); }
         .ar-banner:active { transform: scale(0.96); }
         .ar-banner i { font-size: 4rem; margin-bottom: 12px; }
         .ar-banner h3 { font-size: 1.6rem; margin-bottom: 8px; }
         .ar-banner p { font-size: 0.9rem; color: #ccc; }
-        /* Частицы (вращающийся ореол) */
-        .ar-banner::before {
-            content: '';
-            position: absolute;
-            top: -20px;
-            left: -20px;
-            right: -20px;
-            bottom: -20px;
-            background: radial-gradient(circle, rgba(74,255,181,0.2), transparent);
-            border-radius: 48px;
-            z-index: -1;
-            animation: spin 6s linear infinite;
-            pointer-events: none;
-        }
+        .ar-banner::before { content: ''; position: absolute; top: -20px; left: -20px; right: -20px; bottom: -20px; background: radial-gradient(circle, rgba(74,255,181,0.2), transparent); border-radius: 48px; z-index: -1; animation: spin 6s linear infinite; pointer-events: none; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
-            100% { transform: translateY(0px); }
-        }
-        /* Разные типы баннеров */
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } }
         .banner-weak { border: 2px solid #6c8eff; box-shadow: 0 0 20px #6c8eff; }
         .banner-weak i { color: #6c8eff; }
         .banner-strong { border: 2px solid #ffb347; box-shadow: 0 0 20px #ffb347; }
@@ -173,17 +132,8 @@
         .banner-encrypted i { color: #c084fc; }
         .banner-black { border: 2px solid #ff4d4d; box-shadow: 0 0 20px #ff4d4d; background: linear-gradient(135deg, #1a0f0f, #0a0c12); }
         .banner-black i { color: #ff4d4d; }
-        .camera-close-ar {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 200002;
-            background: rgba(0,0,0,0.6);
-            border-radius: 40px;
-            padding: 8px 16px;
-            font-size: 1.2rem;
-            backdrop-filter: blur(8px);
-        }
+        .camera-close-ar { position: absolute; top: 20px; right: 20px; z-index: 200002; background: rgba(0,0,0,0.6); border-radius: 40px; padding: 8px 16px; font-size: 1.2rem; backdrop-filter: blur(8px); }
+        .open-case-btn { background: #ffd966; color: #0a0c12; margin-top: 8px; padding: 6px 12px; font-size: 0.8rem; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -195,7 +145,6 @@
         <p>скрытый слой города • urban MMORPG</p>
     </div>
     <div class="content" id="contentArea">
-        <!-- Карта, список сигналов и пр. (как в предыдущей версии) -->
         <div id="mapSection" class="section active-section">
             <div class="card">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
@@ -262,7 +211,6 @@
         <div id="detailContent"></div>
     </div>
 
-    <!-- Камера с баннером (динамическое создание контента) -->
     <div id="cameraModal" class="camera-modal">
         <video id="arVideo" class="camera-video" autoplay playsinline muted></video>
         <div id="arBannerContainer"></div>
@@ -381,24 +329,16 @@
         });
     }
 
-    // Создание баннера с учётом типа сигнала
     function createBannerForSignal(signal) {
         const type = signal.type || 'weak';
         let iconClass = 'fa-signal';
-        let title = 'НАГРАДА';
-        let description = 'Нажмите, чтобы забрать';
         if (type === 'weak') iconClass = 'fa-signal';
         else if (type === 'strong') iconClass = 'fa-bolt';
         else if (type === 'encrypted') iconClass = 'fa-lock';
         else if (type === 'black') iconClass = 'fa-skull';
-        
         const bannerDiv = document.createElement('div');
         bannerDiv.className = `ar-banner banner-${type}`;
-        bannerDiv.innerHTML = `
-            <i class="fas ${iconClass}"></i>
-            <h3>${title}</h3>
-            <p>${description}</p>
-        `;
+        bannerDiv.innerHTML = `<i class="fas ${iconClass}"></i><h3>НАГРАДА</h3><p>Нажмите, чтобы забрать</p>`;
         return bannerDiv;
     }
 
@@ -406,35 +346,23 @@
         currentPendingSignal = signal;
         const modal = document.getElementById("cameraModal");
         const video = document.getElementById("arVideo");
-        if (currentStream) {
-            currentStream.getTracks().forEach(track => track.stop());
-        }
+        if (currentStream) currentStream.getTracks().forEach(track => track.stop());
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
             currentStream = stream;
             video.srcObject = stream;
-            
-            // Создаём баннер
             const container = document.getElementById("arBannerContainer");
             container.innerHTML = '';
             const banner = createBannerForSignal(signal);
             container.appendChild(banner);
-            
-            // Добавляем эффект 3D-наклона
             if (orientationHandler) window.removeEventListener('deviceorientation', orientationHandler);
             orientationHandler = (e) => {
                 if (!banner) return;
-                const gamma = e.gamma || 0; // -90..90
-                const beta = e.beta || 0;   // -90..90
-                const rotateY = gamma / 4;
-                const rotateX = beta / 4;
-                banner.style.transform = `perspective(600px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-8px)`;
+                const gamma = e.gamma || 0, beta = e.beta || 0;
+                banner.style.transform = `perspective(600px) rotateX(${beta/4}deg) rotateY(${gamma/4}deg) translateY(-8px)`;
             };
             window.addEventListener('deviceorientation', orientationHandler);
-            
-            // Обработчик клика по баннеру (используем делегирование)
             banner.addEventListener('click', () => claimSignalFromAR());
-            
             modal.classList.add("active");
         } catch (err) {
             console.error(err);
@@ -445,23 +373,11 @@
     async function claimSignalFromAR() {
         if (!currentPendingSignal) return;
         const signal = currentPendingSignal;
-        if (!userLocation) {
-            showToast("Включите геолокацию", true);
-            closeCamera();
-            return;
-        }
+        if (!userLocation) { showToast("Включите геолокацию", true); closeCamera(); return; }
         const dist = getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude);
-        if (dist > 50) {
-            showToast(`Вы слишком далеко (${Math.round(dist)} м). Подойдите ближе.`, true);
-            closeCamera();
-            return;
-        }
-        if (signal.expiresAt && signal.expiresAt.toDate() < Date.now()) {
-            showToast("Сигнал истёк", true);
-            closeCamera();
-            return;
-        }
-        const success = await claimSignal(signal.id, signal.rewardXP, signal.location.latitude, signal.location.longitude);
+        if (dist > 50) { showToast(`Вы слишком далеко (${Math.round(dist)} м)`, true); closeCamera(); return; }
+        if (signal.expiresAt && signal.expiresAt.toDate() < Date.now()) { showToast("Сигнал истёк", true); closeCamera(); return; }
+        const success = await claimSignal(signal.id, signal.rewardXP, signal.location.latitude, signal.location.longitude, signal.rewardCaseId);
         if (success) {
             closeCamera();
             document.getElementById("detailScreen").classList.remove("active");
@@ -471,110 +387,30 @@
     }
 
     function closeCamera() {
-        if (currentStream) {
-            currentStream.getTracks().forEach(track => track.stop());
-            currentStream = null;
-        }
-        if (orientationHandler) {
-            window.removeEventListener('deviceorientation', orientationHandler);
-            orientationHandler = null;
-        }
+        if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); currentStream = null; }
+        if (orientationHandler) { window.removeEventListener('deviceorientation', orientationHandler); orientationHandler = null; }
         const video = document.getElementById("arVideo");
         if (video) video.srcObject = null;
         document.getElementById("cameraModal").classList.remove("active");
         currentPendingSignal = null;
     }
 
-    function showDetail(signal) {
-        if (currentTimerInterval) clearInterval(currentTimerInterval);
-        const distance = userLocation ? getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude) : 0;
-        const typeText = signal.type?.toUpperCase() || "SIGNAL";
-        let typeColor = '#4affb5';
-        if (signal.type === 'weak') typeColor = '#6c8eff';
-        else if (signal.type === 'strong') typeColor = '#ffb347';
-        else if (signal.type === 'encrypted') typeColor = '#c084fc';
-        else if (signal.type === 'black') typeColor = '#ff4d4d';
-        
-        function render() {
-            const timeLeft = formatTimeLeft(signal.expiresAt);
-            document.getElementById("detailContent").innerHTML = `
-                <div class="detail-badge" style="background:${typeColor}20; color:${typeColor}; border:1px solid ${typeColor}">
-                    ${typeText} ${signal.type === 'weak' ? '⚡' : (signal.type === 'strong' ? '💪' : (signal.type === 'encrypted' ? '🔒' : '🌑'))}
-                </div>
-                <p>${signal.description || "Сигнал передаёт слабо зашифрованные данные. Источник где-то рядом."}</p>
-                <div class="detail-address">
-                    📍 ${signal.address || "Координаты: " + signal.location.latitude.toFixed(5) + ", " + signal.location.longitude.toFixed(5)}
-                </div>
-                <div class="detail-info-row">
-                    <i class="fas fa-ruler-combined"></i> <span id="detailDistance">${Math.round(distance)} м</span>
-                </div>
-                <div class="detail-info-row">
-                    <i class="fas fa-hourglass-half"></i> <span id="detailTimer">⏱️ Истекает: ${timeLeft}</span>
-                </div>
-                <div class="detail-info-row">
-                    <i class="fas fa-gift"></i> <span>+${signal.rewardXP} XP, ${signal.rewardItem || "предмет"}</span>
-                </div>
-                <div id="detailError" style="display:none;" class="error-message-inline"></div>
-                <div class="action-buttons">
-                    <button class="primary" id="navigateBtn">🧭 Начать слежение</button>
-                    <button class="primary" id="scanDetailBtn">📡 Сканировать</button>
-                </div>
-            `;
-            document.getElementById("navigateBtn").onclick = () => {
-                if (!userLocation) {
-                    showToast("Не удалось определить местоположение", true);
-                    return;
-                }
-                const url = `https://www.google.com/maps/dir/?api=1&destination=${signal.location.latitude},${signal.location.longitude}&travelmode=walking`;
-                window.open(url, '_blank');
-            };
-            document.getElementById("scanDetailBtn").onclick = async () => {
-                const errorDiv = document.getElementById("detailError");
-                errorDiv.style.display = "none";
-                if (!userLocation) {
-                    showToast("Включите геолокацию", true);
-                    return;
-                }
-                if (signal.expiresAt && signal.expiresAt.toDate() < Date.now()) {
-                    errorDiv.innerHTML = `⏰ Сигнал истёк. Больше недоступен.`;
-                    errorDiv.style.display = "block";
-                    showToast("Сигнал истёк", true);
-                    return;
-                }
-                const dist = getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude);
-                if (dist > 50) {
-                    errorDiv.innerHTML = `⚠️ Вы слишком далеко (${Math.round(dist)} м). Подойдите ближе (нужно ≤50 м).`;
-                    errorDiv.style.display = "block";
-                    showToast(`Вы слишком далеко: ${Math.round(dist)} м`, true);
-                    return;
-                }
-                await startCameraWithBanner(signal);
-            };
+    // Новая функция добавления/обновления инвентаря
+    function addToInventory(inventory, itemName, caseId = null) {
+        if (caseId) {
+            // добавляем кейс
+            const existing = inventory.find(i => i.type === "case" && i.caseId === caseId);
+            if (existing) existing.count++;
+            else inventory.push({ type: "case", caseId, count: 1 });
+        } else if (itemName) {
+            const existing = inventory.find(i => i.type === "item" && i.name === itemName);
+            if (existing) existing.count++;
+            else inventory.push({ type: "item", name: itemName, count: 1 });
         }
-        render();
-        if (signal.expiresAt) {
-            currentTimerInterval = setInterval(() => {
-                const timerSpan = document.getElementById("detailTimer");
-                if (timerSpan) {
-                    const newTime = formatTimeLeft(signal.expiresAt);
-                    timerSpan.innerText = `⏱️ Истекает: ${newTime}`;
-                    if (signal.expiresAt.toDate() <= Date.now()) {
-                        clearInterval(currentTimerInterval);
-                        const errorDiv = document.getElementById("detailError");
-                        if (errorDiv) {
-                            errorDiv.innerHTML = `⏰ Сигнал истёк. Закройте окно.`;
-                            errorDiv.style.display = "block";
-                        }
-                    }
-                } else {
-                    clearInterval(currentTimerInterval);
-                }
-            }, 1000);
-        }
-        document.getElementById("detailScreen").classList.add("active");
+        return inventory;
     }
 
-    async function claimSignal(signalId, rewardXP, signalLat, signalLng) {
+    async function claimSignal(signalId, rewardXP, signalLat, signalLng, rewardCaseId = null) {
         if (!userLocation) { showToast("Включите геолокацию", true); return false; }
         const distance = getDistance(userLocation.lat, userLocation.lng, signalLat, signalLng);
         if (distance > 50) { showToast(`Вы слишком далеко (${Math.round(distance)} м)`, true); return false; }
@@ -591,14 +427,26 @@
                 const newUsesLeft = signalSnap.data().usesLeft - 1;
                 transaction.update(signalRef, { usesLeft: newUsesLeft });
                 const existing = userSnap.exists() ? userSnap.data() : {};
-                const currentXP = typeof existing.xp === 'number' ? existing.xp : 0;
-                const level = typeof existing.level === 'number' ? existing.level : 1;
-                const inventory = (existing.inventory && typeof existing.inventory === 'object') ? existing.inventory : {};
+                let currentXP = typeof existing.xp === 'number' ? existing.xp : 0;
+                let level = typeof existing.level === 'number' ? existing.level : 1;
+                let inventory = (existing.inventory && Array.isArray(existing.inventory)) ? existing.inventory : [];
                 const faction = existing.faction || null;
                 const reputation = (existing.reputation && typeof existing.reputation === 'object') ? existing.reputation : {};
-                const rewardItem = signalSnap.data().rewardItem;
-                if (rewardItem) inventory[rewardItem] = (inventory[rewardItem] || 0) + 1;
-                let newXP = currentXP + rewardXP;
+                
+                let rewardItem = signalSnap.data().rewardItem;
+                let caseId = rewardCaseId || signalSnap.data().rewardCaseId;
+                let xpGain = rewardXP;
+                
+                // Добавляем награду в инвентарь (кейс или предмет)
+                if (caseId) {
+                    inventory = addToInventory(inventory, null, caseId);
+                    xpGain = rewardXP || 0;
+                } else if (rewardItem) {
+                    inventory = addToInventory(inventory, rewardItem, null);
+                    xpGain = rewardXP || 0;
+                }
+                
+                let newXP = currentXP + xpGain;
                 let newLevel = level;
                 if (newXP >= level * 1000) newLevel = level + 1;
                 const newSignalsTaken = [...userSignalsTaken, signalId];
@@ -621,6 +469,59 @@
             showToast(error.message, true);
             return false;
         }
+    }
+
+    async function openCase(caseId) {
+        const caseRef = doc(db, "cases", caseId);
+        const caseSnap = await getDoc(caseRef);
+        if (!caseSnap.exists()) {
+            showToast("Кейс не найден", true);
+            return;
+        }
+        const caseData = caseSnap.data();
+        if (!caseData.items || caseData.items.length === 0) {
+            showToast("Кейс пуст", true);
+            return;
+        }
+        // Выбор случайного предмета по весам
+        const totalWeight = caseData.items.reduce((sum, i) => sum + i.weight, 0);
+        let random = Math.random() * totalWeight;
+        let selected = null;
+        for (const item of caseData.items) {
+            if (random < item.weight) {
+                selected = item;
+                break;
+            }
+            random -= item.weight;
+        }
+        if (!selected) return;
+        
+        // Обновление пользователя
+        const userRef = doc(db, "users", userData.id.toString());
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) return;
+        let inventory = userSnap.data().inventory || [];
+        const caseIndex = inventory.findIndex(i => i.type === "case" && i.caseId === caseId);
+        if (caseIndex === -1 || inventory[caseIndex].count <= 0) {
+            showToast("У вас нет этого кейса", true);
+            return;
+        }
+        // Уменьшаем количество кейсов
+        inventory[caseIndex].count--;
+        if (inventory[caseIndex].count === 0) inventory.splice(caseIndex, 1);
+        
+        // Добавляем награду
+        if (selected.rewardItem) {
+            const itemIndex = inventory.findIndex(i => i.type === "item" && i.name === selected.rewardItem);
+            if (itemIndex !== -1) inventory[itemIndex].count++;
+            else inventory.push({ type: "item", name: selected.rewardItem, count: 1 });
+        }
+        let newXP = userSnap.data().xp || 0;
+        if (selected.rewardXP) newXP += selected.rewardXP;
+        
+        await updateDoc(userRef, { inventory, xp: newXP });
+        showToast(`🎁 Вы открыли кейс и получили: ${selected.itemName || selected.rewardItem}${selected.rewardXP ? ` +${selected.rewardXP} XP` : ''}`);
+        loadUserProfile();
     }
 
     async function loadArchive() {
@@ -703,7 +604,7 @@
                 <div>📍 ${signal.name}</div>
                 <div>📏 ${Math.round(distance)} м</div>
                 <div style="display:flex; justify-content: space-between; margin-top:12px;">
-                    <span>🎁 +${signal.rewardXP} XP, ${signal.rewardItem}</span>
+                    <span>🎁 +${signal.rewardXP} XP, ${signal.rewardItem || (signal.rewardCaseId ? `Кейс: ${signal.rewardCaseId}` : 'предмет')}</span>
                     <button class="primary detail-list-btn">Детали</button>
                 </div>
             `;
@@ -714,11 +615,86 @@
         if (!hasActive) activeDiv.innerHTML = `<div class="card">✨ Нет активных сигналов</div>`;
     }
 
+    function showDetail(signal) {
+        if (currentTimerInterval) clearInterval(currentTimerInterval);
+        const distance = userLocation ? getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude) : 0;
+        const typeText = signal.type?.toUpperCase() || "SIGNAL";
+        let typeColor = '#4affb5';
+        if (signal.type === 'weak') typeColor = '#6c8eff';
+        else if (signal.type === 'strong') typeColor = '#ffb347';
+        else if (signal.type === 'encrypted') typeColor = '#c084fc';
+        else if (signal.type === 'black') typeColor = '#ff4d4d';
+        
+        function render() {
+            const timeLeft = formatTimeLeft(signal.expiresAt);
+            document.getElementById("detailContent").innerHTML = `
+                <div class="detail-badge" style="background:${typeColor}20; color:${typeColor}; border:1px solid ${typeColor}">
+                    ${typeText} ${signal.type === 'weak' ? '⚡' : (signal.type === 'strong' ? '💪' : (signal.type === 'encrypted' ? '🔒' : '🌑'))}
+                </div>
+                <p>${signal.description || "Сигнал передаёт слабо зашифрованные данные. Источник где-то рядом."}</p>
+                <div class="detail-address">
+                    📍 ${signal.address || "Координаты: " + signal.location.latitude.toFixed(5) + ", " + signal.location.longitude.toFixed(5)}
+                </div>
+                <div class="detail-info-row">
+                    <i class="fas fa-ruler-combined"></i> <span id="detailDistance">${Math.round(distance)} м</span>
+                </div>
+                <div class="detail-info-row">
+                    <i class="fas fa-hourglass-half"></i> <span id="detailTimer">⏱️ Истекает: ${timeLeft}</span>
+                </div>
+                <div class="detail-info-row">
+                    <i class="fas fa-gift"></i> <span>+${signal.rewardXP} XP, ${signal.rewardItem || (signal.rewardCaseId ? `Кейс: ${signal.rewardCaseId}` : 'предмет')}</span>
+                </div>
+                <div id="detailError" style="display:none;" class="error-message-inline"></div>
+                <div class="action-buttons">
+                    <button class="primary" id="navigateBtn">🧭 Начать слежение</button>
+                    <button class="primary" id="scanDetailBtn">📡 Сканировать</button>
+                </div>
+            `;
+            document.getElementById("navigateBtn").onclick = () => {
+                if (!userLocation) { showToast("Не удалось определить местоположение", true); return; }
+                window.open(`https://www.google.com/maps/dir/?api=1&destination=${signal.location.latitude},${signal.location.longitude}&travelmode=walking`, '_blank');
+            };
+            document.getElementById("scanDetailBtn").onclick = async () => {
+                const errorDiv = document.getElementById("detailError");
+                errorDiv.style.display = "none";
+                if (!userLocation) { showToast("Включите геолокацию", true); return; }
+                if (signal.expiresAt && signal.expiresAt.toDate() < Date.now()) {
+                    errorDiv.innerHTML = `⏰ Сигнал истёк. Больше недоступен.`;
+                    errorDiv.style.display = "block";
+                    showToast("Сигнал истёк", true);
+                    return;
+                }
+                const dist = getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude);
+                if (dist > 50) {
+                    errorDiv.innerHTML = `⚠️ Вы слишком далеко (${Math.round(dist)} м). Подойдите ближе (нужно ≤50 м).`;
+                    errorDiv.style.display = "block";
+                    showToast(`Вы слишком далеко: ${Math.round(dist)} м`, true);
+                    return;
+                }
+                await startCameraWithBanner(signal);
+            };
+        }
+        render();
+        if (signal.expiresAt) {
+            currentTimerInterval = setInterval(() => {
+                const timerSpan = document.getElementById("detailTimer");
+                if (timerSpan) {
+                    const newTime = formatTimeLeft(signal.expiresAt);
+                    timerSpan.innerText = `⏱️ Истекает: ${newTime}`;
+                    if (signal.expiresAt.toDate() <= Date.now()) {
+                        clearInterval(currentTimerInterval);
+                        const errorDiv = document.getElementById("detailError");
+                        if (errorDiv) { errorDiv.innerHTML = `⏰ Сигнал истёк. Закройте окно.`; errorDiv.style.display = "block"; }
+                    }
+                } else clearInterval(currentTimerInterval);
+            }, 1000);
+        }
+        document.getElementById("detailScreen").classList.add("active");
+    }
+
     function startExpiryWatcher() {
         if (expiryWatcherInterval) clearInterval(expiryWatcherInterval);
-        expiryWatcherInterval = setInterval(() => {
-            renderActiveSignals();
-        }, 5000);
+        expiryWatcherInterval = setInterval(() => renderActiveSignals(), 5000);
     }
 
     function subscribeSignals() {
@@ -749,17 +725,42 @@
             const percent = ((data.xp || 0) / needed) * 100;
             document.getElementById("profileXpFill").style.width = `${Math.min(percent,100)}%`;
             document.getElementById("profileFactionTag").innerText = data.faction || "❌ Без фракции";
-            const inventory = data.inventory || {};
+            const inventory = data.inventory || [];
             const invDiv = document.getElementById("inventoryItems");
             invDiv.innerHTML = "";
-            for (const [item, count] of Object.entries(inventory)) invDiv.innerHTML += `<div class="item"><strong>${item}</strong><br>×${count}</div>`;
-            if (Object.keys(inventory).length === 0) invDiv.innerHTML = "<div>Пусто. Принимай сигналы!</div>";
+            // Кэшируем данные кейсов (просто чтобы не грузить базу повторно)
+            const caseCache = new Map();
+            for (const inv of inventory) {
+                if (inv.type === "item") {
+                    invDiv.innerHTML += `<div class="item"><strong>${inv.name}</strong><br>×${inv.count}</div>`;
+                } else if (inv.type === "case") {
+                    let caseData = caseCache.get(inv.caseId);
+                    if (!caseData) {
+                        const caseDoc = await getDoc(doc(db, "cases", inv.caseId));
+                        caseData = caseDoc.exists() ? caseDoc.data() : { name: `Кейс ${inv.caseId}` };
+                        caseCache.set(inv.caseId, caseData);
+                    }
+                    invDiv.innerHTML += `
+                        <div class="item case-item">
+                            <strong>📦 ${caseData.name}</strong><br>×${inv.count}
+                            <button class="open-case-btn" data-case-id="${inv.caseId}">Открыть</button>
+                        </div>
+                    `;
+                }
+            }
+            document.querySelectorAll(".open-case-btn").forEach(btn => {
+                btn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    openCase(btn.getAttribute("data-case-id"));
+                });
+            });
+            if (inventory.length === 0) invDiv.innerHTML = "<div>Пусто. Принимай сигналы!</div>";
             const repDiv = document.getElementById("reputationInfo");
             if (data.faction) repDiv.innerHTML = `⭐ Репутация: ${data.reputation?.[data.faction] || 0}`;
             else repDiv.innerHTML = `⚡ Выбери фракцию, чтобы зарабатывать репутацию.`;
         } else {
             await setDoc(doc(db, "users", userData.id.toString()), {
-                name: userData.name, xp: 0, level: 1, signalsTaken: [], inventory: {},
+                name: userData.name, xp: 0, level: 1, signalsTaken: [], inventory: [],
                 faction: null, reputation: { Искатели:0, Телефоны:0, Аналитики:0, Культуры:0, Торговцы:0 }, lastSeen: new Date()
             });
             loadUserProfile();
