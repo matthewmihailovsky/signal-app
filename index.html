@@ -3,18 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SIGNAL — скрытый слой Минска</title>
+    <title>SIGNAL — скрытый слой города</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            background: #0a0c12;
+            background: #080a10;
             font-family: 'Inter', system-ui, sans-serif;
             color: #eef2ff;
             overflow-x: hidden;
@@ -23,1490 +21,1549 @@
         .app {
             max-width: 450px;
             margin: 0 auto;
-            background: #0f1117;
+            background: #0d0f16;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
 
+        /* ── HEADER ── */
         .header {
-            padding: 20px 16px 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            background: #0f1117;
+            padding: 18px 16px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            background: #0d0f16;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-
-        .header h1 {
-            font-size: 1.8rem;
-            background: linear-gradient(135deg, #fff, #a5f0ff);
+        .header-left h1 {
+            font-size: 1.7rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            background: linear-gradient(135deg, #fff 30%, #7eb8ff);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
         }
-
-        .header p {
+        .header-left p { font-size: 0.7rem; color: #4a5070; margin-top: 2px; }
+        .header-xp {
+            background: #13161f;
+            border: 1px solid #1e2235;
+            border-radius: 20px;
+            padding: 6px 14px;
             font-size: 0.75rem;
-            color: #8b93b0;
-            margin-top: 4px;
-        }
-
-        .content {
-            flex: 1;
-            padding: 16px 16px 80px;
-            overflow-y: auto;
-        }
-
-        .card {
-            background: #171a23;
-            border-radius: 28px;
-            padding: 16px;
-            margin-bottom: 18px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        #mapContainer {
-            height: 500px;
-            border-radius: 28px;
-            overflow: hidden;
-            margin-bottom: 16px;
-            position: relative;
-        }
-
-        #map {
-            height: 100%;
-            width: 100%;
-        }
-
-        .locate-btn {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(8px);
-            border-radius: 50%;
-            padding: 10px;
-            cursor: pointer;
-            border: 1px solid rgba(74, 255, 181, 0.5);
-        }
-
-        .tabs {
+            color: #7eb8ff;
             display: flex;
-            gap: 16px;
-            margin-bottom: 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 8px;
+            align-items: center;
+            gap: 8px;
         }
+        .xp-dot { width: 7px; height: 7px; border-radius: 50%; background: #7eb8ff; }
 
-        .tab-btn {
-            background: none;
-            padding: 8px 16px;
-            border-radius: 40px;
-            font-weight: 600;
-        }
-
-        .tab-btn.active {
-            background: #4affb5;
-            color: #0a0c12;
-        }
-
-        .signal-card {
-            background: linear-gradient(135deg, #1a1e2a, #12151e);
-            border-left: 3px solid #4affb5;
-            margin-bottom: 12px;
-            padding: 12px;
-            border-radius: 16px;
-        }
-
-        .weak-signal {
-            border-left-color: #6c8eff;
-        }
-
-        .rare-signal {
-            border-left-color: #ffb347;
-        }
-
-        .ghost-signal {
-            border-left-color: #c084fc;
-        }
-
-        button {
-            background: #2a2f3f;
-            border: none;
-            color: white;
-            font-weight: 600;
-            padding: 10px 18px;
-            border-radius: 60px;
-            cursor: pointer;
-        }
-
-        button.primary {
-            background: #4affb5;
-            color: #0a0c12;
-        }
-
+        /* ── NAV ── */
         .bottom-nav {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            bottom: 0; left: 0; right: 0;
             max-width: 450px;
             margin: 0 auto;
-            background: rgba(15, 17, 23, 0.96);
+            background: rgba(13,15,22,0.97);
             backdrop-filter: blur(20px);
             display: flex;
             justify-content: space-around;
-            padding: 12px 16px 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 10px 16px 20px;
+            border-top: 1px solid rgba(255,255,255,0.06);
             z-index: 20;
         }
-
         .nav-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
-            font-size: 0.7rem;
-            color: #7e85a3;
+            gap: 3px;
+            font-size: 0.65rem;
+            color: #3a4060;
             cursor: pointer;
+            transition: color .2s;
         }
+        .nav-item i { font-size: 1.2rem; }
+        .nav-item.active { color: #7eb8ff; }
 
-        .nav-item.active {
-            color: #4affb5;
+        /* ── CONTENT ── */
+        .content {
+            flex: 1;
+            padding: 14px 14px 90px;
+            overflow-y: auto;
         }
+        .section { display: none; }
+        .section.active-section { display: block; }
 
-        .items-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .item {
-            background: #1e2330;
+        /* ── CARDS / SHARED ── */
+        .card {
+            background: #12141d;
             border-radius: 20px;
-            padding: 10px 14px;
-            text-align: center;
-            flex: 1 0 80px;
+            padding: 14px;
+            margin-bottom: 14px;
+            border: 1px solid #1a1d2a;
         }
+        .card h3 { font-size: 0.85rem; color: #4a5070; letter-spacing: 1px; margin-bottom: 12px; }
 
-        .case-item {
-            border: 1px solid #ffd966;
-            background: #2a2518;
-        }
-
-        .xp-bar {
-            background: #262c3c;
-            border-radius: 30px;
-            height: 12px;
-            margin: 12px 0;
+        /* ── MAP ── */
+        #mapContainer {
+            height: 460px;
+            border-radius: 20px;
             overflow: hidden;
+            position: relative;
         }
-
-        .xp-fill {
-            background: #4affb5;
-            height: 100%;
-            width: 0%;
+        #map { height: 100%; width: 100%; }
+        .locate-btn {
+            position: absolute;
+            bottom: 16px; right: 16px;
+            z-index: 1000;
+            background: rgba(10,12,18,0.85);
+            backdrop-filter: blur(8px);
+            border-radius: 50%;
+            width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            border: 1px solid rgba(126,184,255,0.4);
+            font-size: 1.1rem;
         }
-
-        .section {
-            display: none;
-        }
-
-        .section.active-section {
-            display: block;
-        }
-
-        .toast-msg {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #1e2a2a;
-            backdrop-filter: blur(16px);
-            padding: 14px 24px;
-            border-radius: 60px;
-            text-align: center;
-            z-index: 100000;
-            font-weight: 600;
-            border-left: 4px solid #4affb5;
-            pointer-events: none;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.8);
-            font-size: 1rem;
-            max-width: 90%;
-            white-space: normal;
-        }
-
-        .toast-msg.error {
-            border-left-color: #ff4d4d;
-            background: #2a1a1a;
-        }
-
-        .ranking-list {
-            list-style: none;
-        }
-
-        .ranking-list li {
+        .map-legend {
             display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #262c3c;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            font-size: 0.7rem;
+            color: #4a5070;
+        }
+        .legend-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 4px;
         }
 
+        /* ── QUEST CARDS ── */
+        .quest-card {
+            background: #12141d;
+            border: 1px solid #1a1d2a;
+            border-radius: 18px;
+            padding: 14px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: border-color .2s, transform .15s;
+        }
+        .quest-card:hover { border-color: #2a3050; transform: translateY(-1px); }
+        .quest-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .quest-title { font-size: 0.95rem; font-weight: 600; color: #e8eeff; flex: 1; margin-right: 8px; }
+        .badge {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 10px;
+            white-space: nowrap;
+            letter-spacing: 0.5px;
+        }
+        .badge-epic { background: #1e1535; color: #b48af0; border: 1px solid #5030a0; }
+        .badge-rare { background: #101a30; color: #7eb8ff; border: 1px solid #2050a0; }
+        .badge-common { background: #0f1e18; color: #4ab87a; border: 1px solid #1a6040; }
+        .quest-meta { display: flex; gap: 12px; font-size: 0.7rem; color: #3a4060; margin-bottom: 10px; }
+        .quest-meta span { display: flex; align-items: center; gap: 4px; }
+        .progress-wrap { margin-top: 8px; }
+        .progress-bar { height: 3px; background: #1a1d2a; border-radius: 2px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 2px; }
+        .progress-label { font-size: 0.65rem; color: #3a4060; margin-top: 4px; }
+
+        /* ── TABS ── */
+        .tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+        .tab-btn {
+            background: #12141d;
+            border: 1px solid #1a1d2a;
+            color: #4a5070;
+            font-size: 0.8rem;
+            padding: 7px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .tab-btn.active { background: #7eb8ff; color: #080a10; border-color: #7eb8ff; }
+
+        /* ── DETAIL SCREEN (quest steps) ── */
+        .detail-screen {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #0d0f16;
+            z-index: 2000;
+            overflow-y: auto;
+            transform: translateX(100%);
+            transition: transform .3s cubic-bezier(.4,0,.2,1);
+            max-width: 450px;
+            margin: 0 auto;
+        }
+        .detail-screen.active { transform: translateX(0); }
+        .detail-header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #1a1d2a;
+            position: sticky;
+            top: 0;
+            background: #0d0f16;
+            z-index: 10;
+        }
+        .back-btn {
+            background: none;
+            border: none;
+            color: #7eb8ff;
+            font-size: 1.4rem;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+        }
+        .detail-body { padding: 16px; }
+
+        /* ── QUEST STEPS ── */
+        .step-list { margin: 14px 0; }
+        .step-row { display: flex; gap: 12px; margin-bottom: 6px; position: relative; }
+        .step-icon {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .step-done { background: #0e2018; color: #4ab87a; border: 1px solid #1a6040; }
+        .step-active { background: #0f1a30; color: #7eb8ff; border: 1px solid #2050a0; }
+        .step-locked { background: #12141d; color: #2a3050; border: 1px solid #1a1d2a; }
+        .step-content { flex: 1; padding-bottom: 14px; }
+        .step-name { font-size: 0.9rem; font-weight: 600; color: #e8eeff; margin-bottom: 3px; }
+        .step-name.locked { color: #2a3050; }
+        .step-desc { font-size: 0.78rem; color: #4a5070; line-height: 1.5; }
+        .step-connector {
+            position: absolute;
+            left: 14px; top: 34px;
+            width: 1px;
+            background: #1a1d2a;
+        }
+
+        /* ── RIDDLE BOX ── */
+        .riddle-box {
+            background: #0f1825;
+            border: 1px solid #1a3060;
+            border-radius: 14px;
+            padding: 12px;
+            margin-top: 10px;
+        }
+        .riddle-label {
+            font-size: 0.65rem;
+            color: #7eb8ff;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .riddle-text { font-size: 0.85rem; color: #c0cce8; line-height: 1.5; margin-bottom: 4px; }
+        .riddle-hint { font-size: 0.72rem; color: #2a4060; margin-bottom: 10px; }
+        .riddle-input {
+            width: 100%;
+            background: #0d0f16;
+            border: 1px solid #1a1d2a;
+            border-radius: 10px;
+            padding: 9px 12px;
+            color: #e8eeff;
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color .2s;
+        }
+        .riddle-input:focus { border-color: #7eb8ff; }
+        .riddle-feedback { font-size: 0.78rem; margin-top: 6px; padding: 6px 10px; border-radius: 8px; }
+        .feedback-ok { background: #0e2018; color: #4ab87a; border: 1px solid #1a6040; }
+        .feedback-err { background: #1e0f0f; color: #e05050; border: 1px solid #601010; }
+
+        /* ── LOCATION CHECK ── */
+        .location-check {
+            background: #0d1520;
+            border: 1px solid #1a2540;
+            border-radius: 14px;
+            padding: 12px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .location-check p { font-size: 0.8rem; color: #4a6080; margin-bottom: 8px; }
+        .dist-display { font-size: 1.4rem; font-weight: 700; color: #7eb8ff; margin-bottom: 4px; }
+        .dist-label { font-size: 0.7rem; color: #3a4060; }
+
+        /* ── BUTTONS ── */
+        .btn { border: none; border-radius: 30px; cursor: pointer; font-weight: 600; padding: 10px 20px; font-size: 0.85rem; transition: opacity .15s; }
+        .btn:hover { opacity: 0.9; }
+        .btn-primary { background: #7eb8ff; color: #080a10; }
+        .btn-secondary { background: #1a1d2a; color: #7eb8ff; border: 1px solid #2a3050; }
+        .btn-success { background: #1a4030; color: #4ab87a; border: 1px solid #2a7050; }
+        .btn-full { width: 100%; margin-top: 10px; }
+        .btn-sm { padding: 6px 14px; font-size: 0.75rem; }
+
+        /* ── COLLECTION CARDS ── */
+        .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .coll-card {
+            background: #12141d;
+            border: 1px solid #1a1d2a;
+            border-radius: 16px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: border-color .2s;
+        }
+        .coll-card:hover { border-color: #2a3050; }
+        .coll-card.locked { opacity: 0.35; filter: grayscale(1); pointer-events: none; }
+        .coll-art {
+            height: 90px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.8rem;
+            position: relative;
+        }
+        .coll-art-epic { background: #130e20; }
+        .coll-art-rare { background: #0e1520; }
+        .coll-art-common { background: #0e1a14; }
+        .coll-rarity {
+            position: absolute;
+            top: 6px; right: 6px;
+            font-size: 0.6rem; font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 8px;
+        }
+        .coll-info { padding: 8px 10px; }
+        .coll-name { font-size: 0.8rem; font-weight: 600; color: #e8eeff; margin-bottom: 2px; }
+        .coll-loc { font-size: 0.68rem; color: #3a4060; }
+        .coll-bonus { font-size: 0.65rem; color: #4ab87a; margin-top: 3px; }
+
+        /* card detail */
+        .card-detail-art {
+            height: 160px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 5rem;
+            border-radius: 16px;
+            margin-bottom: 14px;
+        }
+        .card-stats { background: #12141d; border: 1px solid #1a1d2a; border-radius: 14px; padding: 12px; }
+        .card-stat-row { display: flex; justify-content: space-between; font-size: 0.78rem; color: #4a5070; padding: 4px 0; border-bottom: 1px solid #1a1d2a; }
+        .card-stat-row:last-child { border-bottom: none; }
+        .card-stat-val { color: #e8eeff; }
+
+        /* ── SIGNAL LIST (original) ── */
+        .signal-card {
+            background: #12141d;
+            border-left: 3px solid #7eb8ff;
+            margin-bottom: 10px;
+            padding: 12px;
+            border-radius: 14px;
+            border-top: 1px solid #1a1d2a;
+            border-right: 1px solid #1a1d2a;
+            border-bottom: 1px solid #1a1d2a;
+        }
+        .signal-card.weak { border-left-color: #7eb8ff; }
+        .signal-card.strong { border-left-color: #ffb347; }
+        .signal-card.encrypted { border-left-color: #b48af0; }
+        .signal-card.black { border-left-color: #ff4d4d; }
+
+        /* ── PROFILE ── */
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+        .stat-box { background: #12141d; border: 1px solid #1a1d2a; border-radius: 14px; padding: 10px; text-align: center; }
+        .stat-val { font-size: 1.3rem; font-weight: 700; color: #e8eeff; }
+        .stat-lbl { font-size: 0.65rem; color: #3a4060; margin-top: 2px; }
+        .xp-bar-wrap { background: #12141d; border-radius: 30px; height: 8px; margin: 10px 0; overflow: hidden; }
+        .xp-bar-fill { height: 100%; background: #7eb8ff; border-radius: 30px; }
+        .ranking-list { list-style: none; }
+        .ranking-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #1a1d2a; }
+        .rank-pos { width: 20px; font-size: 0.75rem; color: #3a4060; }
+        .rank-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; }
+        .rank-name { flex: 1; font-size: 0.85rem; color: #c0cce8; }
+        .rank-xp { font-size: 0.75rem; color: #3a4060; }
+        .faction-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .faction-btn {
+            background: #12141d;
+            border: 1px solid #1a1d2a;
+            border-radius: 12px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #4a5070;
+            transition: all .2s;
+        }
+        .faction-btn.chosen { border-color: #7eb8ff; color: #7eb8ff; background: #0f1825; }
+
+        /* ── SHOP ── */
         .shop-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #1a1e28;
-            margin-bottom: 12px;
-            padding: 12px 16px;
-            border-radius: 24px;
+            background: #12141d;
+            border: 1px solid #1a1d2a;
+            margin-bottom: 10px;
+            padding: 12px 14px;
+            border-radius: 14px;
         }
+        .shop-item-info { flex: 1; font-size: 0.82rem; color: #c0cce8; }
+        .shop-item-price { font-size: 0.82rem; color: #ffd966; font-weight: 700; margin: 0 12px; }
 
-        .price {
-            color: #ffd966;
-            font-weight: bold;
-        }
+        /* ── INVENTORY ── */
+        .inv-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+        .inv-item { background: #12141d; border: 1px solid #1a1d2a; border-radius: 14px; padding: 10px; text-align: center; min-width: 80px; font-size: 0.75rem; }
+        .inv-item.case-item { border-color: #3a3010; }
+        .open-case-btn { background: #ffd966; color: #0d0f16; border: none; border-radius: 20px; padding: 4px 10px; font-size: 0.7rem; cursor: pointer; margin-top: 6px; font-weight: 600; }
 
-        .faction-tag {
-            background: #1f2a3a;
-            border-radius: 40px;
-            padding: 6px 12px;
-            display: inline-block;
-            font-size: 0.8rem;
-        }
-
-        .custom-marker {
-            background: rgba(74, 255, 181, 0.9);
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 0 10px rgba(74, 255, 181, 0.8);
-        }
-
-        .custom-marker-weak {
-            background: #6c8eff;
-        }
-
-        .custom-marker-strong {
-            background: #ffb347;
-        }
-
-        .custom-marker-encrypted {
-            background: #c084fc;
-        }
-
-        .custom-marker-black {
-            background: #ff4d4d;
-        }
-
-        .custom-popup .leaflet-popup-content-wrapper {
-            background: rgba(15, 17, 23, 0.95);
-            backdrop-filter: blur(12px);
-            border-radius: 20px;
-            border: 1px solid rgba(74, 255, 181, 0.3);
-            color: #eef2ff;
-        }
-
-        .custom-popup .leaflet-popup-tip {
-            background: rgba(15, 17, 23, 0.95);
-        }
-
-        .detail-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: #0f1117;
-            z-index: 20000;
-            overflow-y: auto;
-            padding: 20px;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
-        }
-
-        .detail-screen.active {
-            transform: translateX(0);
-        }
-
-        .detail-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .detail-header h2 {
-            font-size: 1.6rem;
-        }
-
-        .close-detail {
-            font-size: 1.8rem;
-            cursor: pointer;
-            background: none;
-            padding: 0;
-            width: 40px;
-            height: 40px;
-        }
-
-        .detail-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            margin-bottom: 12px;
-        }
-
-        .detail-address {
-            background: #1e2330;
-            padding: 12px;
-            border-radius: 16px;
-            margin: 12px 0;
-            font-family: monospace;
-        }
-
-        .detail-info-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 12px 0;
-            color: #8b93b0;
-        }
-
-        .detail-info-row i {
-            width: 24px;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        .action-buttons button {
-            flex: 1;
-        }
-
-        .error-message-inline {
-            background: rgba(255, 77, 77, 0.2);
-            border: 1px solid #ff4d4d;
-            border-radius: 16px;
-            padding: 12px;
-            margin: 16px 0;
-            text-align: center;
-            color: #ff9999;
-        }
-
+        /* ── CAMERA / AR ── */
         .camera-modal {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: #000;
-            z-index: 200000;
+            z-index: 50000;
             display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
         }
-
-        .camera-modal.active {
-            display: flex;
-        }
-
-        .camera-video {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
+        .camera-modal.active { display: flex; }
+        .camera-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
         .ar-banner {
             position: relative;
-            z-index: 200001;
-            background: linear-gradient(135deg, rgba(15, 17, 23, 0.95), rgba(0, 0, 0, 0.85));
-            backdrop-filter: blur(16px);
-            border-radius: 32px;
-            padding: 24px 32px;
+            z-index: 50001;
+            background: rgba(13,15,22,0.92);
+            border-radius: 28px;
+            padding: 24px 28px;
             text-align: center;
-            width: 80%;
-            max-width: 320px;
+            width: 80%; max-width: 300px;
             cursor: pointer;
-            transition: transform 0.1s ease;
             animation: float 2s infinite ease-in-out;
-            transform-style: preserve-3d;
-            will-change: transform;
-            box-shadow: 0 0 30px rgba(74, 255, 181, 0.3);
+            border: 1px solid rgba(126,184,255,0.5);
+            box-shadow: 0 0 30px rgba(126,184,255,0.2);
         }
+        .ar-banner i { font-size: 3.5rem; color: #7eb8ff; margin-bottom: 10px; display: block; }
+        .ar-banner h3 { font-size: 1.3rem; margin-bottom: 6px; }
+        .ar-banner p { font-size: 0.82rem; color: #4a6080; }
+        .camera-close-ar { position: absolute; top: 18px; right: 18px; z-index: 50002; background: rgba(0,0,0,0.6); border: none; border-radius: 30px; padding: 8px 16px; font-size: 0.9rem; color: white; cursor: pointer; backdrop-filter: blur(8px); }
 
-        .ar-banner:active {
-            transform: scale(0.96);
-        }
-
-        .ar-banner i {
-            font-size: 4rem;
-            margin-bottom: 12px;
-        }
-
-        .ar-banner h3 {
-            font-size: 1.6rem;
-            margin-bottom: 8px;
-        }
-
-        .ar-banner p {
-            font-size: 0.9rem;
-            color: #ccc;
-        }
-
-        .ar-banner::before {
-            content: '';
-            position: absolute;
-            top: -20px;
-            left: -20px;
-            right: -20px;
-            bottom: -20px;
-            background: radial-gradient(circle, rgba(74, 255, 181, 0.2), transparent);
-            border-radius: 48px;
-            z-index: -1;
-            animation: spin 6s linear infinite;
-            pointer-events: none;
-        }
-
-        @keyframes spin {
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        @keyframes float {
-            0% {
-                transform: translateY(0px);
-            }
-
-            50% {
-                transform: translateY(-8px);
-            }
-
-            100% {
-                transform: translateY(0px);
-            }
-        }
-
-        .banner-weak {
-            border: 2px solid #6c8eff;
-            box-shadow: 0 0 20px #6c8eff;
-        }
-
-        .banner-weak i {
-            color: #6c8eff;
-        }
-
-        .banner-strong {
-            border: 2px solid #ffb347;
-            box-shadow: 0 0 20px #ffb347;
-        }
-
-        .banner-strong i {
-            color: #ffb347;
-        }
-
-        .banner-encrypted {
-            border: 2px solid #c084fc;
-            box-shadow: 0 0 20px #c084fc;
-        }
-
-        .banner-encrypted i {
-            color: #c084fc;
-        }
-
-        .banner-black {
-            border: 2px solid #ff4d4d;
-            box-shadow: 0 0 20px #ff4d4d;
-            background: linear-gradient(135deg, #1a0f0f, #0a0c12);
-        }
-
-        .banner-black i {
-            color: #ff4d4d;
-        }
-
-        .camera-close-ar {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 200002;
-            background: rgba(0, 0, 0, 0.6);
-            border-radius: 40px;
-            padding: 8px 16px;
-            font-size: 1.2rem;
-            backdrop-filter: blur(8px);
-        }
-
-        .open-case-btn {
-            background: #ffd966;
-            color: #0a0c12;
-            margin-top: 8px;
-            padding: 6px 12px;
-            font-size: 0.8rem;
-            border-radius: 40px;
-        }
-
+        /* ── REWARD MODAL ── */
         .reward-modal {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.85);
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.88);
             backdrop-filter: blur(12px);
-            z-index: 300000;
+            z-index: 60000;
             display: none;
             justify-content: center;
             align-items: center;
         }
-
-        .reward-modal.active {
-            display: flex;
-        }
-
+        .reward-modal.active { display: flex; }
         .reward-card {
-            background: linear-gradient(135deg, #1e2330, #0f1117);
-            border-radius: 48px;
-            padding: 28px 24px;
+            background: #12141d;
+            border: 1px solid #2a3050;
+            border-radius: 32px;
+            padding: 28px 22px;
             text-align: center;
-            width: 80%;
-            max-width: 320px;
-            border: 2px solid #4affb5;
-            box-shadow: 0 0 40px rgba(74, 255, 181, 0.5);
-            animation: bounceIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            width: 82%; max-width: 300px;
+            animation: bounceIn .4s cubic-bezier(.68,-.55,.265,1.55);
         }
+        .reward-card .reward-icon { font-size: 4rem; margin-bottom: 14px; }
+        .reward-card h3 { font-size: 1.3rem; color: #ffd966; margin-bottom: 6px; }
+        .reward-card p { font-size: 0.82rem; color: #4a5070; margin-bottom: 18px; }
 
-        @keyframes bounceIn {
-            0% {
-                transform: scale(0.3);
-                opacity: 0;
-            }
-
-            80% {
-                transform: scale(1.05);
-            }
-
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
+        /* ── TOAST ── */
+        .toast {
+            position: fixed;
+            bottom: 90px; left: 50%;
+            transform: translateX(-50%);
+            background: #0f1825;
+            border: 1px solid #2050a0;
+            border-radius: 30px;
+            padding: 9px 20px;
+            font-size: 0.82rem;
+            color: #7eb8ff;
+            white-space: nowrap;
+            z-index: 90000;
+            opacity: 0;
+            transition: opacity .3s;
+            pointer-events: none;
         }
+        .toast.show { opacity: 1; }
+        .toast.error { background: #1e0f0f; border-color: #601010; color: #e05050; }
 
-        .reward-card .reward-image {
-            font-size: 5rem;
-            margin-bottom: 16px;
+        /* ── POPUP ── */
+        .custom-popup .leaflet-popup-content-wrapper {
+            background: rgba(13,15,22,0.96);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            border: 1px solid rgba(126,184,255,0.25);
+            color: #eef2ff;
         }
+        .custom-popup .leaflet-popup-tip { background: rgba(13,15,22,0.96); }
+        .popup-detail-btn { background: #7eb8ff; color: #080a10; border: none; border-radius: 20px; padding: 5px 14px; font-size: 0.75rem; cursor: pointer; font-weight: 600; margin-top: 6px; }
 
-        .reward-card img {
-            width: 100px;
-            height: 100px;
-            object-fit: contain;
-            filter: drop-shadow(0 0 10px #4affb5);
-        }
+        /* custom marker */
+        .custom-marker { border-radius: 50%; border: 2px solid white; }
+        .cm-weak { background: #7eb8ff; box-shadow: 0 0 8px rgba(126,184,255,.7); }
+        .cm-strong { background: #ffb347; box-shadow: 0 0 8px rgba(255,179,71,.7); }
+        .cm-encrypted { background: #b48af0; box-shadow: 0 0 8px rgba(180,138,240,.7); }
+        .cm-black { background: #ff4d4d; box-shadow: 0 0 8px rgba(255,77,77,.7); }
+        .cm-quest { background: #4ab87a; box-shadow: 0 0 10px rgba(74,184,122,.8); }
 
-        .reward-card h3 {
-            font-size: 1.6rem;
-            margin-bottom: 8px;
-            color: #ffd966;
-        }
-
-        .reward-card p {
-            font-size: 1rem;
-            color: #ccc;
-            margin-bottom: 20px;
-        }
-
-        .reward-card button {
-            background: #4affb5;
-            color: #0a0c12;
-            font-weight: bold;
-            padding: 10px 20px;
-            border-radius: 40px;
-            border: none;
-            cursor: pointer;
-        }
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+        @keyframes bounceIn { 0%{transform:scale(.3);opacity:0} 80%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
-
 <body>
-    <div class="app">
-        <div class="header">
+<div class="app">
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-left">
             <h1>SIGNAL</h1>
-            <p>скрытый слой города • urban MMORPG</p>
+            <p>скрытый слой города · urban MMORPG</p>
         </div>
-        <div class="content" id="contentArea">
-            <div id="mapSection" class="section active-section">
-                <div class="card">
-                    <div style="display: flex; justify-content: space-between;">
-                        <span><strong>🗺️ Карта сигналов</strong></span>
-                        <span style="font-size:0.7rem;">📍 ваше местоположение</span>
-                    </div>
-                    <div id="mapContainer">
-                        <div id="map"></div>
-                        <div class="locate-btn" id="locateMe">🎯</div>
-                    </div>
-                    <div style="margin-top: 12px; font-size:0.75rem;">
-                        🔍 На карте отмечены активные сигналы. Нажмите на маркер, чтобы открыть детали.
-                    </div>
-                </div>
-            </div>
-            <div id="signalsSection" class="section">
-                <div class="tabs">
-                    <button class="tab-btn active" data-tab="active">Активные</button>
-                    <button class="tab-btn" data-tab="archive">Архив</button>
-                </div>
-                <div id="activeSignalsList"></div>
-                <div id="archiveSignalsList" style="display:none;"></div>
-            </div>
-            <div id="inventorySection" class="section">
-                <div class="card">
-                    <h3>📦 ИНВЕНТАРЬ</h3>
-                    <div id="inventoryItems" class="items-grid"></div>
-                </div>
-                <div class="card">
-                    <h3>🏆 КОЛЛЕКЦИИ</h3>
-                    <div id="collectionsBlock">🔹 Фрагменты будут открываться после сигналов</div>
-                </div>
-            </div>
-            <div id="profileSection" class="section">
-                <div class="card">
-                    <div style="display: flex; justify-content: space-between;">
-                        <div><span style="font-size:1.6rem;">👤</span> <strong id="profileUsername">Исследователь</strong></div>
-                        <div class="faction-tag" id="profileFactionTag">❌ Без фракции</div>
-                    </div>
-                    <div><strong>Уровень <span id="profileLevel">1</span></strong></div>
-                    <div class="xp-bar">
-                        <div class="xp-fill" id="profileXpFill"></div>
-                    </div>
-                    <div><span id="profileXpCurrent">0</span> / <span id="profileXpNeeded">1000</span> XP</div>
-                </div>
-                <div class="card">
-                    <h3>🏅 РЕЙТИНГ ГОРОДА</h3>
-                    <ul class="ranking-list" id="rankingList"></ul>
-                </div>
-                <div class="card">
-                    <h3>⚔️ ТВОЯ ФРАКЦИЯ</h3>
-                    <p id="factionDesc">Выбери фракцию, выполняя задания и принимая сигналы.</p>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="factionButtons">
-                        <button data-faction="Искатели">Искатели</button>
-                        <button data-faction="Телефоны">Телефоны</button>
-                        <button data-faction="Аналитики">Аналитики</button>
-                        <button data-faction="Культуры">Культуры</button>
-                        <button data-faction="Торговцы">Торговцы</button>
-                    </div>
-                    <div id="reputationInfo" style="margin-top:12px;"></div>
-                </div>
-            </div>
-            <div id="shopSection" class="section">
-                <div class="card">
-                    <h3>💎 ПРЕМИУМ ДОСТУП</h3>
-                    <div class="shop-item"><span>🔓 Премиум подписка (месяц)</span><span class="price">499 ₽</span><button class="buy-premium">Купить</button></div>
-                    <div class="shop-item"><span>📡 Эксклюзивный Black Signal</span><span class="price">249 ₽</span><button class="buy-signal">Купить</button></div>
-                    <div class="shop-item"><span>⚡ Бустер опыта (+50% XP 1 день)</span><span class="price">149 ₽</span><button class="buy-booster">Купить</button></div>
-                    <div class="shop-item"><span>🎁 Секретный дроп (редкий предмет)</span><span class="price">199 ₽</span><button class="buy-drop">Купить</button></div>
-                </div>
-                <div class="card">
-                    <h3>🎫 БРЕНДИРОВАННЫЕ СОБЫТИЯ</h3>
-                    <p>⚡ Signal от ZARA: эксклюзивный доступ к капсуле (скоро)</p>
-                    <p>🎧 Night Rave в Парке Горького — сигнал только для участников фракции</p>
-                </div>
-            </div>
-        </div>
-
-        <div id="detailScreen" class="detail-screen">
-            <div class="detail-header">
-                <h2>Детали сигнала</h2>
-                <button class="close-detail" id="closeDetailBtn">✖️</button>
-            </div>
-            <div id="detailContent"></div>
-        </div>
-
-        <div id="cameraModal" class="camera-modal">
-            <video id="arVideo" class="camera-video" autoplay playsinline muted></video>
-            <div id="arBannerContainer"></div>
-            <button class="camera-close-ar" id="closeCameraBtn">✖ Закрыть</button>
-        </div>
-
-        <div id="rewardModal" class="reward-modal">
-            <div class="reward-card">
-                <div class="reward-image"><i class="fas fa-gem"></i></div>
-                <h3 id="rewardTitle">Награда</h3>
-                <p id="rewardDesc"></p>
-                <button id="closeRewardBtn">Забрать</button>
-            </div>
-        </div>
-
-        <div class="bottom-nav">
-            <div class="nav-item" data-nav="map">🗺️<span>Карта</span></div>
-            <div class="nav-item" data-nav="signals">📡<span>Сигналы</span></div>
-            <div class="nav-item" data-nav="inventory">🎒<span>Инвентарь</span></div>
-            <div class="nav-item" data-nav="profile">👤<span>Профиль</span></div>
-            <div class="nav-item" data-nav="shop">🛒<span>Магазин</span></div>
+        <div class="header-xp">
+            <span class="xp-dot"></span>
+            <span id="headerXP">0 XP</span>
+            <span style="color:#1a1d2a">|</span>
+            <span id="headerLevel">Ур.1</span>
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion, onSnapshot, query, where, orderBy, limit, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    <!-- MAIN CONTENT -->
+    <div class="content" id="contentArea">
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyAvqd3lQwvRecGNykyBncl-EKc0I5891UA",
-            authDomain: "signal-game-27495.firebaseapp.com",
-            projectId: "signal-game-27495",
-            storageBucket: "signal-game-27495.firebasestorage.app",
-            messagingSenderId: "706423536737",
-            appId: "1:706423536737:web:040edb44f5574617bb7e20"
-        };
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        <!-- ══ MAP ══ -->
+        <div id="mapSection" class="section active-section">
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+                    <strong style="font-size:.85rem">🗺️ Карта сигналов</strong>
+                    <span style="font-size:.7rem;color:#3a4060">📍 геолокация активна</span>
+                </div>
+                <div id="mapContainer">
+                    <div id="map"></div>
+                    <div class="locate-btn" id="locateMe">🎯</div>
+                </div>
+                <div class="map-legend">
+                    <span><span class="legend-dot" style="background:#4ab87a"></span>Квест</span>
+                    <span><span class="legend-dot" style="background:#7eb8ff"></span>Weak</span>
+                    <span><span class="legend-dot" style="background:#ffb347"></span>Strong</span>
+                    <span><span class="legend-dot" style="background:#b48af0"></span>Encrypted</span>
+                    <span><span class="legend-dot" style="background:#ff4d4d"></span>Black</span>
+                </div>
+            </div>
+        </div>
 
-        let tg = window.Telegram?.WebApp;
-        let userData = {
-            id: null,
-            name: "Исследователь"
-        };
-        if (tg) {
-            tg.ready();
-            if (tg.initDataUnsafe?.user) {
-                userData.id = tg.initDataUnsafe.user.id;
-                userData.name = tg.initDataUnsafe.user.first_name || "Игрок";
-            }
-        } else {
-            userData.id = "test_" + Date.now();
-            userData.name = "Тестовый";
-        }
+        <!-- ══ QUESTS + SIGNALS ══ -->
+        <div id="signalsSection" class="section">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="quests">⚔️ Квесты</button>
+                <button class="tab-btn" data-tab="signals">📡 Сигналы</button>
+                <button class="tab-btn" data-tab="archive">📦 Архив</button>
+            </div>
+            <!-- Quests tab -->
+            <div id="questsTab">
+                <div id="questsList"></div>
+            </div>
+            <!-- Signals tab -->
+            <div id="signalsTab" style="display:none">
+                <div id="activeSignalsList"></div>
+            </div>
+            <!-- Archive tab -->
+            <div id="archiveTab" style="display:none">
+                <div id="archiveSignalsList"></div>
+            </div>
+        </div>
 
-        let map, userMarker = null, userLocation = null, currentSignalMarkers = [], unsubscribeSignals = null;
-        let currentTimerInterval = null;
-        let allActiveSignals = [];
-        let expiryWatcherInterval = null;
-        let currentStream = null;
-        let currentPendingSignal = null;
-        let orientationHandler = null;
+        <!-- ══ COLLECTION CARDS ══ -->
+        <div id="inventorySection" class="section">
+            <div class="card">
+                <h3>🃏 КОЛЛЕКЦИЯ КАРТОЧЕК</h3>
+                <div id="collectionGrid" class="cards-grid"></div>
+            </div>
+            <div class="card">
+                <h3>🎒 ИНВЕНТАРЬ</h3>
+                <div id="inventoryItems" class="inv-grid"></div>
+            </div>
+        </div>
 
-        function getDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3;
-            const φ1 = lat1 * Math.PI / 180,
-                φ2 = lat2 * Math.PI / 180;
-            const Δφ = (lat2 - lat1) * Math.PI / 180,
-                Δλ = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        }
-
-        function showToast(msg, isError = false) {
-            let existing = document.querySelector(".toast-msg");
-            if (existing) existing.remove();
-            let toast = document.createElement("div");
-            toast.className = "toast-msg";
-            if (isError) toast.classList.add("error");
-            toast.innerText = msg;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
-
-        function formatTimeLeft(expiresAt) {
-            if (!expiresAt) return "∞ (не ограничен)";
-            const diff = expiresAt.toDate() - Date.now();
-            if (diff <= 0) return "Истёк";
-            const hours = Math.floor(diff / 3600000);
-            const minutes = Math.floor((diff % 3600000) / 60000);
-            const seconds = Math.floor((diff % 60000) / 1000);
-            if (hours > 0) return `${hours} ч ${minutes} мин`;
-            if (minutes > 0) return `${minutes} мин ${seconds} сек`;
-            return `${seconds} сек`;
-        }
-
-        function getMarkerIcon(signalType) {
-            let colorClass = "custom-marker";
-            if (signalType === "weak") colorClass = "custom-marker custom-marker-weak";
-            else if (signalType === "strong") colorClass = "custom-marker custom-marker-strong";
-            else if (signalType === "encrypted") colorClass = "custom-marker custom-marker-encrypted";
-            else if (signalType === "black") colorClass = "custom-marker custom-marker-black";
-            return L.divIcon({
-                className: colorClass,
-                iconSize: [24, 24],
-                popupAnchor: [0, -12]
-            });
-        }
-
-        function initMap() {
-            map = L.map('map').setView([53.9045, 27.5615], 13);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CartoDB',
-                subdomains: 'abcd'
-            }).addTo(map);
-            if (navigator.geolocation) {
-                let first = true;
-                navigator.geolocation.watchPosition(
-                    (pos) => {
-                        userLocation = {
-                            lat: pos.coords.latitude,
-                            lng: pos.coords.longitude
-                        };
-                        if (userMarker) map.removeLayer(userMarker);
-                        userMarker = L.marker([userLocation.lat, userLocation.lng], {
-                            icon: L.divIcon({
-                                className: 'user-marker',
-                                html: '📍',
-                                iconSize: [24, 24]
-                            })
-                        }).addTo(map);
-                        if (first) {
-                            map.setView([userLocation.lat, userLocation.lng], 15);
-                            first = false;
-                        }
-                        renderActiveSignals();
-                    },
-                    (err) => console.warn(err), {
-                        enableHighAccuracy: true
-                    }
-                );
-            }
-            document.getElementById("locateMe")?.addEventListener("click", () => {
-                if (userLocation) map.setView([userLocation.lat, userLocation.lng], 15);
-            });
-        }
-
-        function createBannerForSignal(signal) {
-            const type = signal.type || 'weak';
-            let iconClass = 'fa-signal';
-            if (type === 'weak') iconClass = 'fa-signal';
-            else if (type === 'strong') iconClass = 'fa-bolt';
-            else if (type === 'encrypted') iconClass = 'fa-lock';
-            else if (type === 'black') iconClass = 'fa-skull';
-            const bannerDiv = document.createElement('div');
-            bannerDiv.className = `ar-banner banner-${type}`;
-            bannerDiv.innerHTML = `<i class="fas ${iconClass}"></i><h3>НАГРАДА</h3><p>Нажмите, чтобы забрать</p>`;
-            return bannerDiv;
-        }
-
-        async function startCameraWithBanner(signal) {
-            currentPendingSignal = signal;
-            const modal = document.getElementById("cameraModal");
-            const video = document.getElementById("arVideo");
-            if (currentStream) currentStream.getTracks().forEach(track => track.stop());
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: "environment"
-                    }
-                });
-                currentStream = stream;
-                video.srcObject = stream;
-                const container = document.getElementById("arBannerContainer");
-                container.innerHTML = '';
-                const banner = createBannerForSignal(signal);
-                container.appendChild(banner);
-                if (orientationHandler) window.removeEventListener('deviceorientation', orientationHandler);
-                orientationHandler = (e) => {
-                    if (!banner) return;
-                    const gamma = e.gamma || 0,
-                        beta = e.beta || 0;
-                    banner.style.transform = `perspective(600px) rotateX(${beta / 4}deg) rotateY(${gamma / 4}deg) translateY(-8px)`;
-                };
-                window.addEventListener('deviceorientation', orientationHandler);
-                banner.addEventListener('click', () => claimSignalFromAR());
-                modal.classList.add("active");
-            } catch (err) {
-                console.error(err);
-                showToast("Не удалось получить доступ к камере", true);
-            }
-        }
-
-        async function claimSignalFromAR() {
-            if (!currentPendingSignal) return;
-            const signal = currentPendingSignal;
-            if (!userLocation) {
-                showToast("Включите геолокацию", true);
-                closeCamera();
-                return;
-            }
-            const dist = getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude);
-            if (dist > 50) {
-                showToast(`Вы слишком далеко (${Math.round(dist)} м)`, true);
-                closeCamera();
-                return;
-            }
-            if (signal.expiresAt && signal.expiresAt.toDate() < Date.now()) {
-                showToast("Сигнал истёк", true);
-                closeCamera();
-                return;
-            }
-            const success = await claimSignal(signal.id, signal.rewardXP, signal.location.latitude, signal.location.longitude, signal.rewardCaseId);
-            if (success) {
-                closeCamera();
-                document.getElementById("detailScreen").classList.remove("active");
-            } else {
-                closeCamera();
-            }
-        }
-
-        function closeCamera() {
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-                currentStream = null;
-            }
-            if (orientationHandler) {
-                window.removeEventListener('deviceorientation', orientationHandler);
-                orientationHandler = null;
-            }
-            const video = document.getElementById("arVideo");
-            if (video) video.srcObject = null;
-            document.getElementById("cameraModal").classList.remove("active");
-            currentPendingSignal = null;
-        }
-
-        function addToInventory(inventory, itemName, caseId = null, imageUrl = null) {
-            if (caseId) {
-                const existing = inventory.find(i => i.type === "case" && i.caseId === caseId);
-                if (existing) existing.count++;
-                else inventory.push({
-                    type: "case",
-                    caseId,
-                    count: 1
-                });
-            } else if (itemName) {
-                const existing = inventory.find(i => i.type === "item" && i.name === itemName);
-                if (existing) {
-                    existing.count++;
-                    if (imageUrl && !existing.imageUrl) existing.imageUrl = imageUrl;
-                } else {
-                    inventory.push({
-                        type: "item",
-                        name: itemName,
-                        count: 1,
-                        imageUrl: imageUrl || null
-                    });
-                }
-            }
-            return inventory;
-        }
-
-        async function claimSignal(signalId, rewardXP, signalLat, signalLng, rewardCaseId = null) {
-            if (!userLocation) {
-                showToast("Включите геолокацию", true);
-                return false;
-            }
-            const distance = getDistance(userLocation.lat, userLocation.lng, signalLat, signalLng);
-            if (distance > 50) {
-                showToast(`Вы слишком далеко (${Math.round(distance)} м)`, true);
-                return false;
-            }
-            try {
-                await runTransaction(db, async (transaction) => {
-                    const signalRef = doc(db, "signals", signalId);
-                    const signalSnap = await transaction.get(signalRef);
-                    if (!signalSnap.exists() || signalSnap.data().usesLeft <= 0) throw new Error("Сигнал уже исчерпан");
-                    if (signalSnap.data().expiresAt && signalSnap.data().expiresAt.toDate() < Date.now()) throw new Error("Сигнал истёк по времени");
-                    const userRef = doc(db, "users", userData.id.toString());
-                    const userSnap = await transaction.get(userRef);
-                    const userSignalsTaken = userSnap.exists() ? (userSnap.data().signalsTaken || []) : [];
-                    if (userSignalsTaken.includes(signalId)) throw new Error("Вы уже активировали этот сигнал");
-                    const newUsesLeft = signalSnap.data().usesLeft - 1;
-                    transaction.update(signalRef, {
-                        usesLeft: newUsesLeft
-                    });
-                    const existing = userSnap.exists() ? userSnap.data() : {};
-                    let currentXP = typeof existing.xp === 'number' ? existing.xp : 0;
-                    let level = typeof existing.level === 'number' ? existing.level : 1;
-                    let inventory = (existing.inventory && Array.isArray(existing.inventory)) ? existing.inventory : [];
-                    const faction = existing.faction || null;
-                    const reputation = (existing.reputation && typeof existing.reputation === 'object') ? existing.reputation : {};
-                    let xpGain = rewardXP || 0;
-                    let caseId = rewardCaseId || signalSnap.data().rewardCaseId;
-                    if (caseId) {
-                        inventory = addToInventory(inventory, null, caseId);
-                    } else if (signalSnap.data().rewardItem) {
-                        inventory = addToInventory(inventory, signalSnap.data().rewardItem, null, signalSnap.data().itemImageUrl || null);
-                    }
-                    let newXP = currentXP + xpGain;
-                    let newLevel = level;
-                    if (newXP >= level * 1000) newLevel = level + 1;
-                    const newSignalsTaken = [...userSignalsTaken, signalId];
-                    transaction.set(userRef, {
-                        name: userData.name,
-                        xp: newXP,
-                        level: newLevel,
-                        signalsTaken: newSignalsTaken,
-                        lastSeen: new Date(),
-                        inventory: inventory,
-                        faction: faction,
-                        reputation: reputation
-                    }, {
-                        merge: true
-                    });
-                });
-                showToast(`✅ Сигнал принят! +${rewardXP} XP`);
-                loadUserProfile();
-                loadRanking();
-                return true;
-            } catch (error) {
-                showToast(error.message, true);
-                return false;
-            }
-        }
-
-        async function openCase(caseId) {
-            const caseRef = doc(db, "cases", caseId);
-            const caseSnap = await getDoc(caseRef);
-            if (!caseSnap.exists()) {
-                showToast("Кейс не найден", true);
-                return;
-            }
-            const caseData = caseSnap.data();
-            if (!caseData.items || caseData.items.length === 0) {
-                showToast("Кейс пуст", true);
-                return;
-            }
-            const totalWeight = caseData.items.reduce((sum, i) => sum + i.weight, 0);
-            let random = Math.random() * totalWeight;
-            let selected = null;
-            for (const item of caseData.items) {
-                if (random < item.weight) {
-                    selected = item;
-                    break;
-                }
-                random -= item.weight;
-            }
-            if (!selected) return;
-
-            const modal = document.getElementById("rewardModal");
-            const rewardTitle = document.getElementById("rewardTitle");
-            const rewardDesc = document.getElementById("rewardDesc");
-            const rewardImageDiv = document.querySelector("#rewardModal .reward-image");
-
-            if (selected.imageUrl) {
-                rewardImageDiv.innerHTML = `<img src="${selected.imageUrl}" alt="reward">`;
-            } else {
-                rewardImageDiv.innerHTML = `<i class="fas fa-gem"></i>`;
-            }
-            rewardTitle.innerText = selected.itemName;
-            let descText = `+${selected.rewardXP || 0} XP`;
-            if (selected.rewardItem) descText += `, ${selected.rewardItem}`;
-            rewardDesc.innerText = descText;
-            modal.classList.add("active");
-
-            window.pendingReward = selected;
-            window.pendingCaseId = caseId;
-
-            document.getElementById("closeRewardBtn").onclick = async () => {
-                modal.classList.remove("active");
-                const userRef = doc(db, "users", userData.id.toString());
-                const userSnap = await getDoc(userRef);
-                if (!userSnap.exists()) return;
-                let inventory = userSnap.data().inventory || [];
-                const caseIndex = inventory.findIndex(i => i.type === "case" && i.caseId === caseId);
-                if (caseIndex !== -1) {
-                    inventory[caseIndex].count--;
-                    if (inventory[caseIndex].count === 0) inventory.splice(caseIndex, 1);
-                }
-                if (window.pendingReward.rewardItem) {
-                    const itemName = window.pendingReward.rewardItem;
-                    const imageUrl = window.pendingReward.imageUrl || null;
-                    const existingItemIndex = inventory.findIndex(i => i.type === "item" && i.name === itemName);
-                    if (existingItemIndex !== -1) {
-                        inventory[existingItemIndex].count++;
-                        if (imageUrl && !inventory[existingItemIndex].imageUrl) inventory[existingItemIndex].imageUrl = imageUrl;
-                    } else {
-                        inventory.push({
-                            type: "item",
-                            name: itemName,
-                            count: 1,
-                            imageUrl: imageUrl
-                        });
-                    }
-                }
-                let newXP = (userSnap.data().xp || 0) + (window.pendingReward.rewardXP || 0);
-                await updateDoc(userRef, {
-                    inventory,
-                    xp: newXP
-                });
-                showToast(`Вы получили ${window.pendingReward.itemName}!`);
-                loadUserProfile();
-                window.pendingReward = null;
-                window.pendingCaseId = null;
-            };
-        }
-
-        function renderActiveSignals() {
-            if (!map) return;
-            currentSignalMarkers.forEach(m => map.removeLayer(m));
-            currentSignalMarkers = [];
-            const activeDiv = document.getElementById("activeSignalsList");
-            activeDiv.innerHTML = "";
-            const now = new Date();
-            let hasActive = false;
-            for (const signal of allActiveSignals) {
-                if (signal.usesLeft <= 0) continue;
-                if (signal.expiresAt && signal.expiresAt.toDate() < now) continue;
-                hasActive = true;
-                let distance = userLocation ? getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude) : 0;
-                let iconClass = 'fa-signal';
-                if (signal.type === 'strong') iconClass = 'fa-bolt';
-                else if (signal.type === 'encrypted') iconClass = 'fa-lock';
-                else if (signal.type === 'black') iconClass = 'fa-skull';
-
-                const marker = L.marker([signal.location.latitude, signal.location.longitude], {
-                    icon: getMarkerIcon(signal.type)
-                }).addTo(map);
-                marker.signalData = signal;
-                marker.bindPopup(`
-                    <div style="text-align:center;">
-                        <strong>${signal.name}</strong><br>
-                        ${Math.round(distance)} м<br>
-                        <button class="popup-detail-btn">Подробнее</button>
-                    </div>
-                `, {
-                    className: 'custom-popup'
-                });
-                marker.on('popupopen', function() {
-                    const popupElement = this.getPopup().getElement();
-                    const btn = popupElement.querySelector('.popup-detail-btn');
-                    if (btn) {
-                        btn.replaceWith(btn.cloneNode(true));
-                        const newBtn = popupElement.querySelector('.popup-detail-btn');
-                        newBtn.addEventListener('click', () => showDetail(signal));
-                    }
-                });
-                currentSignalMarkers.push(marker);
-
-                const cardDiv = document.createElement('div');
-                cardDiv.className = `card signal-card ${signal.type === 'weak' ? 'weak-signal' : (signal.type === 'strong' ? 'rare-signal' : 'ghost-signal')}`;
-                let rewardText = signal.rewardItem || (signal.rewardCaseId ? `Кейс: ${signal.rewardCaseId}` : 'предмет');
-                cardDiv.innerHTML = `
-                    <div><i class="fas ${iconClass}"></i> <strong>${signal.type?.toUpperCase()}</strong> <span style="font-size:0.7rem;">осталось: ${signal.usesLeft}</span></div>
-                    <div>📍 ${signal.name}</div>
-                    <div>📏 ${Math.round(distance)} м</div>
-                    <div style="display:flex; justify-content: space-between; margin-top:12px;">
-                        <span>🎁 +${signal.rewardXP} XP, ${rewardText}</span>
-                        <button class="primary detail-list-btn">Детали</button>
-                    </div>
-                `;
-                const btn = cardDiv.querySelector('.detail-list-btn');
-                btn.addEventListener('click', () => showDetail(signal));
-                activeDiv.appendChild(cardDiv);
-            }
-            if (!hasActive) activeDiv.innerHTML = `<div class="card">✨ Нет активных сигналов</div>`;
-        }
-
-        function showDetail(signal) {
-            if (currentTimerInterval) clearInterval(currentTimerInterval);
-            const distance = userLocation ? getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude) : 0;
-            const typeText = signal.type?.toUpperCase() || "SIGNAL";
-            let typeColor = '#4affb5';
-            if (signal.type === 'weak') typeColor = '#6c8eff';
-            else if (signal.type === 'strong') typeColor = '#ffb347';
-            else if (signal.type === 'encrypted') typeColor = '#c084fc';
-            else if (signal.type === 'black') typeColor = '#ff4d4d';
-
-            function render() {
-                const timeLeft = formatTimeLeft(signal.expiresAt);
-                let rewardText = signal.rewardItem || (signal.rewardCaseId ? `Кейс: ${signal.rewardCaseId}` : 'предмет');
-                document.getElementById("detailContent").innerHTML = `
-                    <div class="detail-badge" style="background:${typeColor}20; color:${typeColor}; border:1px solid ${typeColor}">
-                        ${typeText} ${signal.type === 'weak' ? '⚡' : (signal.type === 'strong' ? '💪' : (signal.type === 'encrypted' ? '🔒' : '🌑'))}
-                    </div>
-                    <p>${signal.description || "Сигнал передаёт слабо зашифрованные данные. Источник где-то рядом."}</p>
-                    <div class="detail-address">
-                        📍 ${signal.address || "Координаты: " + signal.location.latitude.toFixed(5) + ", " + signal.location.longitude.toFixed(5)}
-                    </div>
-                    <div class="detail-info-row">
-                        <i class="fas fa-ruler-combined"></i> <span id="detailDistance">${Math.round(distance)} м</span>
-                    </div>
-                    <div class="detail-info-row">
-                        <i class="fas fa-hourglass-half"></i> <span id="detailTimer">⏱️ Истекает: ${timeLeft}</span>
-                    </div>
-                    <div class="detail-info-row">
-                        <i class="fas fa-gift"></i> <span>+${signal.rewardXP} XP, ${rewardText}</span>
-                    </div>
-                    <div id="detailError" style="display:none;" class="error-message-inline"></div>
-                    <div class="action-buttons">
-                        <button class="primary" id="navigateBtn">🧭 Начать слежение</button>
-                        <button class="primary" id="scanDetailBtn">📡 Сканировать</button>
-                    </div>
-                `;
-                document.getElementById("navigateBtn").onclick = () => {
-                    if (!userLocation) {
-                        showToast("Не удалось определить местоположение", true);
-                        return;
-                    }
-                    window.open(`https://www.google.com/maps/dir/?api=1&destination=${signal.location.latitude},${signal.location.longitude}&travelmode=walking`, '_blank');
-                };
-                document.getElementById("scanDetailBtn").onclick = async () => {
-                    const errorDiv = document.getElementById("detailError");
-                    errorDiv.style.display = "none";
-                    if (!userLocation) {
-                        showToast("Включите геолокацию", true);
-                        return;
-                    }
-                    if (signal.expiresAt && signal.expiresAt.toDate() < Date.now()) {
-                        errorDiv.innerHTML = `⏰ Сигнал истёк. Больше недоступен.`;
-                        errorDiv.style.display = "block";
-                        showToast("Сигнал истёк", true);
-                        return;
-                    }
-                    const dist = getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude);
-                    if (dist > 50) {
-                        errorDiv.innerHTML = `⚠️ Вы слишком далеко (${Math.round(dist)} м). Подойдите ближе (нужно ≤50 м).`;
-                        errorDiv.style.display = "block";
-                        showToast(`Вы слишком далеко: ${Math.round(dist)} м`, true);
-                        return;
-                    }
-                    await startCameraWithBanner(signal);
-                };
-            }
-            render();
-            if (signal.expiresAt) {
-                currentTimerInterval = setInterval(() => {
-                    const timerSpan = document.getElementById("detailTimer");
-                    if (timerSpan) {
-                        const newTime = formatTimeLeft(signal.expiresAt);
-                        timerSpan.innerText = `⏱️ Истекает: ${newTime}`;
-                        if (signal.expiresAt.toDate() <= Date.now()) {
-                            clearInterval(currentTimerInterval);
-                            const errorDiv = document.getElementById("detailError");
-                            if (errorDiv) {
-                                errorDiv.innerHTML = `⏰ Сигнал истёк. Закройте окно.`;
-                                errorDiv.style.display = "block";
-                            }
-                        }
-                    } else clearInterval(currentTimerInterval);
-                }, 1000);
-            }
-            document.getElementById("detailScreen").classList.add("active");
-        }
-
-        async function loadArchive() {
-            const userRef = doc(db, "users", userData.id.toString());
-            const userSnap = await getDoc(userRef);
-            if (!userSnap.exists()) {
-                document.getElementById("archiveSignalsList").innerHTML = `<div class="card">Вы пока не приняли ни одного сигнала.</div>`;
-                return;
-            }
-            const takenIds = userSnap.data().signalsTaken || [];
-            if (takenIds.length === 0) {
-                document.getElementById("archiveSignalsList").innerHTML = `<div class="card">Вы пока не приняли ни одного сигнала.</div>`;
-                return;
-            }
-            const signalsPromises = takenIds.map(id => getDoc(doc(db, "signals", id)));
-            const signalsSnaps = await Promise.all(signalsPromises);
-            let html = '';
-            signalsSnaps.forEach(snap => {
-                if (snap.exists()) {
-                    const s = snap.data();
-                    let iconClass = 'fa-signal';
-                    if (s.type === 'strong') iconClass = 'fa-bolt';
-                    else if (s.type === 'encrypted') iconClass = 'fa-lock';
-                    else if (s.type === 'black') iconClass = 'fa-skull';
-                    html += `
-                        <div class="card signal-card ${s.type === 'weak' ? 'weak-signal' : (s.type === 'strong' ? 'rare-signal' : 'ghost-signal')}">
-                            <div><i class="fas ${iconClass}" style="margin-right:6px;"></i> <strong>${s.name}</strong> (${s.type?.toUpperCase()})</div>
-                            <div>🎁 +${s.rewardXP} XP, ${s.rewardItem || 'предмет'}</div>
-                            <div>📅 Активирован</div>
+        <!-- ══ PROFILE ══ -->
+        <div id="profileSection" class="section">
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                    <div style="display:flex;align-items:center;gap:10px">
+                        <div style="width:44px;height:44px;border-radius:50%;background:#0f1825;border:1px solid #2050a0;display:flex;align-items:center;justify-content:center;font-size:1.2rem">👤</div>
+                        <div>
+                            <div style="font-weight:600;font-size:1rem" id="profileUsername">Исследователь</div>
+                            <div style="font-size:.7rem;color:#3a4060" id="profileFactionTag">Без фракции</div>
                         </div>
-                    `;
-                }
-            });
-            document.getElementById("archiveSignalsList").innerHTML = html;
+                    </div>
+                    <div style="text-align:right">
+                        <div style="font-size:1.2rem;font-weight:700;color:#7eb8ff" id="profileLevel">1</div>
+                        <div style="font-size:.65rem;color:#3a4060">уровень</div>
+                    </div>
+                </div>
+                <div class="xp-bar-wrap"><div class="xp-bar-fill" id="profileXpFill" style="width:0%"></div></div>
+                <div style="font-size:.72rem;color:#3a4060"><span id="profileXpCurrent">0</span> / <span id="profileXpNeeded">1000</span> XP</div>
+            </div>
+            <div class="card">
+                <h3>📊 СТАТИСТИКА</h3>
+                <div class="stat-grid">
+                    <div class="stat-box"><div class="stat-val" id="statSignals">0</div><div class="stat-lbl">Сигналов</div></div>
+                    <div class="stat-box"><div class="stat-val" id="statQuests">0</div><div class="stat-lbl">Квестов</div></div>
+                    <div class="stat-box"><div class="stat-val" id="statCards">0</div><div class="stat-lbl">Карточек</div></div>
+                </div>
+            </div>
+            <div class="card">
+                <h3>🏅 РЕЙТИНГ ГОРОДА</h3>
+                <ul class="ranking-list" id="rankingList"></ul>
+            </div>
+            <div class="card">
+                <h3>⚔️ ФРАКЦИЯ</h3>
+                <p style="font-size:.78rem;color:#3a4060;margin-bottom:10px">Выбери фракцию — она определяет твои бонусы и союзников.</p>
+                <div class="faction-grid" id="factionButtons">
+                    <div class="faction-btn" data-faction="Искатели">🔭 Искатели</div>
+                    <div class="faction-btn" data-faction="Аналитики">🧠 Аналитики</div>
+                    <div class="faction-btn" data-faction="Культуры">🎨 Культуры</div>
+                    <div class="faction-btn" data-faction="Торговцы">💼 Торговцы</div>
+                </div>
+                <div id="reputationInfo" style="margin-top:10px;font-size:.78rem;color:#3a4060"></div>
+            </div>
+        </div>
+
+        <!-- ══ SHOP ══ -->
+        <div id="shopSection" class="section">
+            <div class="card">
+                <h3>💎 ПРЕМИУМ</h3>
+                <div class="shop-item">
+                    <div class="shop-item-info">🔓 Премиум подписка (месяц)<br><span style="font-size:.7rem;color:#3a4060">Доступ к Black Signal и редким квестам</span></div>
+                    <span class="shop-item-price">499 ₽</span>
+                    <button class="btn btn-sm btn-primary">Купить</button>
+                </div>
+                <div class="shop-item">
+                    <div class="shop-item-info">📡 Эксклюзивный Black Signal<br><span style="font-size:.7rem;color:#3a4060">Уникальная карточка + 300 XP</span></div>
+                    <span class="shop-item-price">249 ₽</span>
+                    <button class="btn btn-sm btn-primary">Купить</button>
+                </div>
+                <div class="shop-item">
+                    <div class="shop-item-info">⚡ Бустер опыта (+50% XP 1 день)</div>
+                    <span class="shop-item-price">149 ₽</span>
+                    <button class="btn btn-sm btn-primary">Купить</button>
+                </div>
+                <div class="shop-item">
+                    <div class="shop-item-info">🎁 Секретный дроп (редкий предмет)</div>
+                    <span class="shop-item-price">199 ₽</span>
+                    <button class="btn btn-sm btn-primary">Купить</button>
+                </div>
+            </div>
+            <div class="card">
+                <h3>🎫 СОБЫТИЯ</h3>
+                <p style="font-size:.82rem;color:#4a5070;margin-bottom:8px">⚡ Signal от ZARA: эксклюзивный доступ к капсуле <span style="color:#ffd966">(скоро)</span></p>
+                <p style="font-size:.82rem;color:#4a5070">🎧 Night Rave в Парке Горького — только для членов фракции</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ══ QUEST DETAIL SCREEN ══ -->
+    <div id="questDetailScreen" class="detail-screen">
+        <div class="detail-header">
+            <button class="back-btn" id="closeQuestDetail">←</button>
+            <div style="flex:1">
+                <div style="font-size:1rem;font-weight:600" id="questDetailTitle"></div>
+                <div style="font-size:.7rem;color:#3a4060" id="questDetailMeta"></div>
+            </div>
+            <span id="questDetailBadge" class="badge"></span>
+        </div>
+        <div class="detail-body" id="questDetailBody"></div>
+    </div>
+
+    <!-- ══ SIGNAL DETAIL SCREEN (original) ══ -->
+    <div id="detailScreen" class="detail-screen">
+        <div class="detail-header">
+            <button class="back-btn" id="closeDetailBtn">←</button>
+            <div style="flex:1;font-size:1rem;font-weight:600">Детали сигнала</div>
+        </div>
+        <div class="detail-body" id="detailContent"></div>
+    </div>
+
+    <!-- ══ CARD DETAIL SCREEN ══ -->
+    <div id="cardDetailScreen" class="detail-screen">
+        <div class="detail-header">
+            <button class="back-btn" id="closeCardDetail">←</button>
+            <div style="flex:1;font-size:1rem;font-weight:600" id="cardDetailTitle"></div>
+            <span id="cardDetailBadge" class="badge"></span>
+        </div>
+        <div class="detail-body" id="cardDetailBody"></div>
+    </div>
+
+    <!-- ══ CAMERA / AR ══ -->
+    <div id="cameraModal" class="camera-modal">
+        <video id="arVideo" class="camera-video" autoplay playsinline muted></video>
+        <div id="arBannerContainer"></div>
+        <button class="camera-close-ar" id="closeCameraBtn">✖ Закрыть</button>
+    </div>
+
+    <!-- ══ REWARD MODAL ══ -->
+    <div id="rewardModal" class="reward-modal">
+        <div class="reward-card">
+            <div class="reward-icon" id="rewardIcon">💎</div>
+            <h3 id="rewardTitle">Награда</h3>
+            <p id="rewardDesc"></p>
+            <button class="btn btn-primary btn-full" id="closeRewardBtn">Забрать</button>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ══ BOTTOM NAV ══ -->
+    <div class="bottom-nav">
+        <div class="nav-item active" data-nav="map"><i class="fas fa-map"></i><span>Карта</span></div>
+        <div class="nav-item" data-nav="signals"><i class="fas fa-satellite-dish"></i><span>Квесты</span></div>
+        <div class="nav-item" data-nav="inventory"><i class="fas fa-layer-group"></i><span>Карточки</span></div>
+        <div class="nav-item" data-nav="profile"><i class="fas fa-user"></i><span>Профиль</span></div>
+        <div class="nav-item" data-nav="shop"><i class="fas fa-store"></i><span>Магазин</span></div>
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import {
+    getFirestore, collection, doc, getDoc, getDocs, setDoc,
+    updateDoc, onSnapshot, query, where, orderBy, limit, runTransaction
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+// ─── Firebase config (твоя) ───────────────────────────────────────────────
+const firebaseConfig = {
+    apiKey: "AIzaSyAvqd3lQwvRecGNykyBncl-EKc0I5891UA",
+    authDomain: "signal-game-27495.firebaseapp.com",
+    projectId: "signal-game-27495",
+    storageBucket: "signal-game-27495.firebasestorage.app",
+    messagingSenderId: "706423536737",
+    appId: "1:706423536737:web:040edb44f5574617bb7e20"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ─── Telegram / user ─────────────────────────────────────────────────────
+let tg = window.Telegram?.WebApp;
+let userData = { id: null, name: "Исследователь" };
+if (tg) {
+    tg.ready();
+    if (tg.initDataUnsafe?.user) {
+        userData.id = tg.initDataUnsafe.user.id;
+        userData.name = tg.initDataUnsafe.user.first_name || "Игрок";
+    }
+} else {
+    userData.id = "test_" + Date.now();
+    userData.name = "Тестовый";
+}
+
+// ─── State ────────────────────────────────────────────────────────────────
+let map, userMarker = null, userLocation = null;
+let currentSignalMarkers = [], unsubscribeSignals = null;
+let allActiveSignals = [], allQuests = [];
+let expiryWatcherInterval = null;
+let currentStream = null, currentPendingSignal = null, orientationHandler = null;
+let currentTimerInterval = null;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────
+function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3;
+    const φ1 = lat1*Math.PI/180, φ2 = lat2*Math.PI/180;
+    const Δφ = (lat2-lat1)*Math.PI/180, Δλ = (lon2-lon1)*Math.PI/180;
+    const a = Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function showToast(msg, isError=false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isError ? ' error' : '');
+    setTimeout(() => t.className = 'toast', 2800);
+}
+
+function formatTimeLeft(expiresAt) {
+    if (!expiresAt) return "∞";
+    const diff = expiresAt.toDate() - Date.now();
+    if (diff <= 0) return "Истёк";
+    const h = Math.floor(diff/3600000);
+    const m = Math.floor((diff%3600000)/60000);
+    const s = Math.floor((diff%60000)/1000);
+    if (h > 0) return `${h}ч ${m}м`;
+    if (m > 0) return `${m}м ${s}с`;
+    return `${s}с`;
+}
+
+function getMarkerClass(type) {
+    if (type==='strong') return 'cm-strong';
+    if (type==='encrypted') return 'cm-encrypted';
+    if (type==='black') return 'cm-black';
+    return 'cm-weak';
+}
+
+function getMarkerIcon(type, isQuest=false) {
+    const cls = isQuest ? 'custom-marker cm-quest' : `custom-marker ${getMarkerClass(type)}`;
+    return L.divIcon({ className: cls, iconSize: [22,22], popupAnchor: [0,-11] });
+}
+
+function addToInventory(inventory, itemName, caseId=null, imageUrl=null) {
+    if (caseId) {
+        const ex = inventory.find(i=>i.type==='case'&&i.caseId===caseId);
+        if (ex) ex.count++; else inventory.push({type:'case',caseId,count:1});
+    } else if (itemName) {
+        const ex = inventory.find(i=>i.type==='item'&&i.name===itemName);
+        if (ex) { ex.count++; if(imageUrl&&!ex.imageUrl)ex.imageUrl=imageUrl; }
+        else inventory.push({type:'item',name:itemName,count:1,imageUrl:imageUrl||null});
+    }
+    return inventory;
+}
+
+// ─── MAP ──────────────────────────────────────────────────────────────────
+function initMap() {
+    map = L.map('map').setView([53.9045, 27.5615], 13);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OSM &copy; CartoDB', subdomains: 'abcd'
+    }).addTo(map);
+    if (navigator.geolocation) {
+        let first = true;
+        navigator.geolocation.watchPosition(pos => {
+            userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            if (userMarker) map.removeLayer(userMarker);
+            userMarker = L.marker([userLocation.lat, userLocation.lng], {
+                icon: L.divIcon({ className:'', html:'📍', iconSize:[24,24] })
+            }).addTo(map);
+            if (first) { map.setView([userLocation.lat, userLocation.lng], 15); first=false; }
+            renderMapMarkers();
+        }, err => console.warn(err), { enableHighAccuracy: true });
+    }
+    document.getElementById('locateMe')?.addEventListener('click', () => {
+        if (userLocation) map.setView([userLocation.lat, userLocation.lng], 15);
+    });
+}
+
+function renderMapMarkers() {
+    currentSignalMarkers.forEach(m => map.removeLayer(m));
+    currentSignalMarkers = [];
+    const now = new Date();
+
+    // Signal markers
+    for (const signal of allActiveSignals) {
+        if (signal.usesLeft <= 0) continue;
+        if (signal.expiresAt && signal.expiresAt.toDate() < now) continue;
+        const dist = userLocation ? Math.round(getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude)) : 0;
+        const m = L.marker([signal.location.latitude, signal.location.longitude], {
+            icon: getMarkerIcon(signal.type)
+        }).addTo(map);
+        m.bindPopup(`<div style="text-align:center;font-size:.82rem"><strong>${signal.name}</strong><br>${dist}м<br><button class="popup-detail-btn" onclick="window._showSignalDetail('${signal.id}')">Подробнее</button></div>`, {className:'custom-popup'});
+        currentSignalMarkers.push(m);
+    }
+
+    // Quest markers
+    for (const quest of allQuests) {
+        if (!quest.mapLocation) continue;
+        const m = L.marker([quest.mapLocation.latitude, quest.mapLocation.longitude], {
+            icon: getMarkerIcon('', true)
+        }).addTo(map);
+        m.bindPopup(`<div style="text-align:center;font-size:.82rem"><strong>⚔️ ${quest.title}</strong><br><em style="color:#4ab87a">Квест</em><br><button class="popup-detail-btn" onclick="window._openQuest('${quest.id}')">Открыть</button></div>`, {className:'custom-popup'});
+        currentSignalMarkers.push(m);
+    }
+}
+
+// expose for popup buttons
+window._showSignalDetail = (id) => { const s = allActiveSignals.find(x=>x.id===id); if(s) showSignalDetail(s); };
+window._openQuest = (id) => { const q = allQuests.find(x=>x.id===id); if(q) openQuestDetail(q); };
+
+// ─── SIGNALS (original logic) ─────────────────────────────────────────────
+function subscribeSignals() {
+    if (unsubscribeSignals) unsubscribeSignals();
+    const q = query(collection(db, 'signals'), where('usesLeft','>',0));
+    unsubscribeSignals = onSnapshot(q, snapshot => {
+        allActiveSignals = [];
+        snapshot.forEach(docSnap => {
+            const s = { id: docSnap.id, ...docSnap.data() };
+            if (s.location?.latitude) allActiveSignals.push(s);
+        });
+        renderSignalsList();
+        renderMapMarkers();
+    });
+    if (expiryWatcherInterval) clearInterval(expiryWatcherInterval);
+    expiryWatcherInterval = setInterval(() => { renderSignalsList(); renderMapMarkers(); }, 5000);
+}
+
+function renderSignalsList() {
+    const div = document.getElementById('activeSignalsList');
+    div.innerHTML = '';
+    const now = new Date();
+    let any = false;
+    for (const s of allActiveSignals) {
+        if (s.usesLeft <= 0 || (s.expiresAt && s.expiresAt.toDate() < now)) continue;
+        any = true;
+        const dist = userLocation ? Math.round(getDistance(userLocation.lat, userLocation.lng, s.location.latitude, s.location.longitude)) : 0;
+        const typeMap = { weak:'weak', strong:'strong', encrypted:'encrypted', black:'black' };
+        const cls = typeMap[s.type] || 'weak';
+        const iconMap = { strong:'fa-bolt', encrypted:'fa-lock', black:'fa-skull' };
+        const ico = iconMap[s.type] || 'fa-signal';
+        const rewardText = s.rewardItem || (s.rewardCaseId ? `Кейс: ${s.rewardCaseId}` : 'предмет');
+        const card = document.createElement('div');
+        card.className = `signal-card ${cls}`;
+        card.innerHTML = `
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                <span><i class="fas ${ico}"></i> <strong>${s.type?.toUpperCase()}</strong></span>
+                <span style="font-size:.7rem;color:#3a4060">осталось: ${s.usesLeft}</span>
+            </div>
+            <div style="font-size:.85rem;font-weight:600;margin-bottom:4px">📍 ${s.name}</div>
+            <div style="font-size:.75rem;color:#3a4060;margin-bottom:8px">📏 ${dist} м · ⏱ ${formatTimeLeft(s.expiresAt)}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:.75rem;color:#4a5070">🎁 +${s.rewardXP} XP, ${rewardText}</span>
+                <button class="btn btn-sm btn-secondary">Детали</button>
+            </div>`;
+        card.querySelector('button').addEventListener('click', () => showSignalDetail(s));
+        div.appendChild(card);
+    }
+    if (!any) div.innerHTML = `<div class="card" style="text-align:center;color:#3a4060;font-size:.85rem">Нет активных сигналов</div>`;
+}
+
+function showSignalDetail(signal) {
+    if (currentTimerInterval) clearInterval(currentTimerInterval);
+    const dist = userLocation ? Math.round(getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude)) : 0;
+    const typeColors = { weak:'#7eb8ff', strong:'#ffb347', encrypted:'#b48af0', black:'#ff4d4d' };
+    const col = typeColors[signal.type] || '#7eb8ff';
+    const rewardText = signal.rewardItem || (signal.rewardCaseId ? `Кейс: ${signal.rewardCaseId}` : 'предмет');
+
+    function render() {
+        document.getElementById('detailContent').innerHTML = `
+            <div class="badge badge-${signal.type==='weak'?'rare':signal.type==='strong'?'common':'epic'}"
+                 style="background:${col}18;color:${col};border-color:${col};margin-bottom:12px">
+                ${signal.type?.toUpperCase()}
+            </div>
+            <p style="font-size:.82rem;color:#4a5070;margin-bottom:12px;line-height:1.6">
+                ${signal.description || "Сигнал передаёт зашифрованные данные. Источник где-то рядом."}
+            </p>
+            <div style="background:#12141d;border-radius:12px;padding:10px;margin-bottom:10px;font-size:.78rem;color:#c0cce8;font-family:monospace">
+                📍 ${signal.address || `${signal.location.latitude.toFixed(5)}, ${signal.location.longitude.toFixed(5)}`}
+            </div>
+            <div style="display:flex;gap:10px;margin-bottom:14px">
+                <div style="flex:1;background:#12141d;border-radius:12px;padding:10px;text-align:center">
+                    <div style="font-size:1.1rem;font-weight:700;color:#7eb8ff">${dist} м</div>
+                    <div style="font-size:.65rem;color:#3a4060">расстояние</div>
+                </div>
+                <div style="flex:1;background:#12141d;border-radius:12px;padding:10px;text-align:center">
+                    <div style="font-size:1.1rem;font-weight:700;color:#ffd966" id="signalTimer">${formatTimeLeft(signal.expiresAt)}</div>
+                    <div style="font-size:.65rem;color:#3a4060">осталось</div>
+                </div>
+                <div style="flex:1;background:#12141d;border-radius:12px;padding:10px;text-align:center">
+                    <div style="font-size:1.1rem;font-weight:700;color:#4ab87a">+${signal.rewardXP}</div>
+                    <div style="font-size:.65rem;color:#3a4060">XP</div>
+                </div>
+            </div>
+            <div id="signalDetailError" style="display:none;background:#1e0f0f;border:1px solid #601010;border-radius:12px;padding:10px;margin-bottom:10px;font-size:.78rem;color:#e05050"></div>
+            <div style="display:flex;gap:8px">
+                <button class="btn btn-secondary" style="flex:1" id="navBtn">🧭 Навигация</button>
+                <button class="btn btn-primary" style="flex:1" id="scanBtn">📡 Сканировать</button>
+            </div>`;
+
+        document.getElementById('navBtn').onclick = () => {
+            window.open(`https://www.google.com/maps/dir/?api=1&destination=${signal.location.latitude},${signal.location.longitude}&travelmode=walking`,'_blank');
+        };
+        document.getElementById('scanBtn').onclick = async () => {
+            const errDiv = document.getElementById('signalDetailError');
+            errDiv.style.display='none';
+            if (!userLocation) { showToast('Включите геолокацию',true); return; }
+            if (signal.expiresAt && signal.expiresAt.toDate()<Date.now()) {
+                errDiv.textContent='⏰ Сигнал истёк.'; errDiv.style.display='block'; return;
+            }
+            const d = getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude);
+            if (d > 50) {
+                errDiv.textContent=`⚠️ Вы слишком далеко (${Math.round(d)} м). Нужно ≤50 м.`; errDiv.style.display='block'; return;
+            }
+            await startCameraWithBanner(signal);
+        };
+    }
+    render();
+    if (signal.expiresAt) {
+        currentTimerInterval = setInterval(() => {
+            const el = document.getElementById('signalTimer');
+            if (el) el.textContent = formatTimeLeft(signal.expiresAt);
+            else clearInterval(currentTimerInterval);
+        }, 1000);
+    }
+    document.getElementById('detailScreen').classList.add('active');
+}
+
+// ─── QUESTS (new) ─────────────────────────────────────────────────────────
+async function loadQuests() {
+    try {
+        const snap = await getDocs(collection(db, 'quests'));
+        allQuests = [];
+        snap.forEach(docSnap => allQuests.push({ id: docSnap.id, ...docSnap.data() }));
+        renderQuestsList();
+        renderMapMarkers();
+    } catch(e) {
+        // quests collection may not exist yet
+        renderQuestsList();
+    }
+}
+
+function renderQuestsList() {
+    const div = document.getElementById('questsList');
+    if (!allQuests.length) {
+        div.innerHTML = `<div class="card" style="text-align:center;color:#3a4060;font-size:.85rem">Квесты скоро появятся 🗺️</div>`;
+        return;
+    }
+    div.innerHTML = '';
+    for (const q of allQuests) {
+        const completedSteps = (q.steps||[]).filter(s=>s.done).length;
+        const totalSteps = (q.steps||[]).length;
+        const pct = totalSteps ? Math.round(completedSteps/totalSteps*100) : 0;
+        const rarityMap = { epic:'badge-epic', rare:'badge-rare', common:'badge-common' };
+        const fillCol = q.rarity==='epic'?'#b48af0':q.rarity==='rare'?'#7eb8ff':'#4ab87a';
+        const card = document.createElement('div');
+        card.className = 'quest-card';
+        card.innerHTML = `
+            <div class="quest-card-top">
+                <span class="quest-title">${q.title}</span>
+                <span class="badge ${rarityMap[q.rarity]||'badge-rare'}">${(q.rarity||'RARE').toUpperCase()}</span>
+            </div>
+            <div class="quest-meta">
+                <span><i class="fas fa-map-marker-alt"></i>${q.area||'Город'}</span>
+                <span><i class="fas fa-list-ol"></i>${totalSteps} этапов</span>
+                <span><i class="fas fa-star"></i>+${q.rewardXP||0} XP</span>
+            </div>
+            <div class="progress-wrap">
+                <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${fillCol}"></div></div>
+                <div class="progress-label">${completedSteps===totalSteps&&totalSteps>0?'✅ Завершён — забери награду!':completedSteps+' из '+totalSteps+' пройдено'}</div>
+            </div>`;
+        card.addEventListener('click', () => openQuestDetail(q));
+        div.appendChild(card);
+    }
+}
+
+function openQuestDetail(quest) {
+    document.getElementById('questDetailTitle').textContent = quest.title;
+    const rarityMap = { epic:'badge-epic', rare:'badge-rare', common:'badge-common' };
+    const b = document.getElementById('questDetailBadge');
+    b.className = 'badge ' + (rarityMap[quest.rarity]||'badge-rare');
+    b.textContent = (quest.rarity||'rare').toUpperCase();
+    document.getElementById('questDetailMeta').textContent = `${quest.area||'Город'} · +${quest.rewardXP||0} XP`;
+
+    const body = document.getElementById('questDetailBody');
+    const steps = quest.steps || [];
+    let html = `<p style="font-size:.82rem;color:#4a5070;margin-bottom:14px;line-height:1.6">${quest.description||''}</p>`;
+    html += '<div class="step-list">';
+
+    steps.forEach((step, i) => {
+        const isLast = i === steps.length-1;
+        const cls = step.done ? 'step-done' : step.active ? 'step-active' : 'step-locked';
+        const ico = step.done ? 'fa-check' : step.active ? 'fa-play' : 'fa-lock';
+        const connHeight = 28;
+
+        html += `<div class="step-row">
+            <div>
+                <div class="step-icon ${cls}"><i class="fas fa-${ico}"></i></div>
+                ${!isLast ? `<div class="step-connector" style="height:${connHeight}px"></div>` : ''}
+            </div>
+            <div class="step-content">
+                <div class="step-name${step.active||step.done?'':' locked'}">${step.name}</div>
+                <div class="step-desc">${step.active||step.done ? step.desc : 'Разблокируется после предыдущего этапа'}</div>`;
+
+        // ── RIDDLE ──
+        if (step.active && step.riddle) {
+            html += `<div class="riddle-box" id="riddleBox_${i}">
+                <div class="riddle-label"><i class="fas fa-puzzle-piece"></i> Загадка</div>
+                <div class="riddle-text">${step.riddle.question}</div>
+                <div class="riddle-hint">Подсказка: ${step.riddle.hint||'—'}</div>
+                <input class="riddle-input" id="riddleInput_${i}" placeholder="Твой ответ…">
+                <button class="btn btn-primary btn-full" style="margin-top:8px" data-step="${i}" data-answer="${step.riddle.answer}">Проверить</button>
+                <div id="riddleFeedback_${i}"></div>
+            </div>`;
         }
 
-        function subscribeSignals() {
-            if (unsubscribeSignals) unsubscribeSignals();
-            const q = query(collection(db, "signals"), where("usesLeft", ">", 0));
-            unsubscribeSignals = onSnapshot(q, (snapshot) => {
-                allActiveSignals = [];
-                snapshot.forEach(docSnap => {
-                    const signal = {
-                        id: docSnap.id,
-                        ...docSnap.data()
-                    };
-                    if (!signal.location?.latitude) return;
-                    allActiveSignals.push(signal);
-                });
-                renderActiveSignals();
-            });
-            if (expiryWatcherInterval) clearInterval(expiryWatcherInterval);
-            expiryWatcherInterval = setInterval(() => renderActiveSignals(), 5000);
+        // ── LOCATION CHECK (for steps that need physical presence) ──
+        if (step.active && step.requiresLocation && step.location) {
+            const dist = userLocation ? Math.round(getDistance(userLocation.lat, userLocation.lng, step.location.latitude, step.location.longitude)) : '?';
+            const inRange = userLocation && getDistance(userLocation.lat, userLocation.lng, step.location.latitude, step.location.longitude) <= (step.radius||50);
+            html += `<div class="location-check">
+                <div class="dist-display">${dist} м</div>
+                <div class="dist-label">до точки этапа (нужно ≤${step.radius||50} м)</div>
+                ${inRange
+                    ? `<button class="btn btn-success btn-full" style="margin-top:8px" data-step="${i}" data-action="claimstep">✅ Я здесь — отметить этап</button>`
+                    : `<button class="btn btn-secondary btn-full" style="margin-top:8px" onclick="window.open('https://www.google.com/maps/dir/?api=1&destination=${step.location.latitude},${step.location.longitude}&travelmode=walking','_blank')">🧭 Навигация к точке</button>`
+                }
+            </div>`;
         }
 
-        async function loadUserProfile() {
-            const userRef = doc(db, "users", userData.id.toString());
-            const snap = await getDoc(userRef);
-            if (snap.exists()) {
-                const data = snap.data();
-                document.getElementById("profileUsername").innerText = data.name || userData.name;
-                document.getElementById("profileLevel").innerText = data.level || 1;
-                document.getElementById("profileXpCurrent").innerText = data.xp || 0;
-                const needed = (data.level || 1) * 1000;
-                document.getElementById("profileXpNeeded").innerText = needed;
-                const percent = ((data.xp || 0) / needed) * 100;
-                document.getElementById("profileXpFill").style.width = `${Math.min(percent, 100)}%`;
-                document.getElementById("profileFactionTag").innerText = data.faction || "❌ Без фракции";
-                const inventory = data.inventory || [];
-                const invDiv = document.getElementById("inventoryItems");
-                invDiv.innerHTML = "";
-                const caseCache = new Map();
-                for (const inv of inventory) {
-                    if (inv.type === "item") {
-                        const imgHtml = inv.imageUrl ? `<img src="${inv.imageUrl}" style="width:36px;height:36px;object-fit:contain;display:block;margin:0 auto 8px;">` : `<i class="fas fa-cube" style="font-size:32px;margin-bottom:8px;"></i>`;
-                        invDiv.innerHTML += `
-                            <div class="item">
-                                ${imgHtml}
-                                <strong>${inv.name}</strong><br>×${inv.count}
-                            </div>
-                        `;
-                    } else if (inv.type === "case") {
-                        let caseData = caseCache.get(inv.caseId);
-                        if (!caseData) {
-                            const caseDoc = await getDoc(doc(db, "cases", inv.caseId));
-                            caseData = caseDoc.exists() ? caseDoc.data() : {
-                                name: `Кейс ${inv.caseId}`
-                            };
-                            caseCache.set(inv.caseId, caseData);
-                        }
-                        invDiv.innerHTML += `
-                            <div class="item case-item">
-                                <i class="fas fa-gift" style="font-size:32px;margin-bottom:8px;"></i><br>
-                                <strong>📦 ${caseData.name}</strong><br>×${inv.count}
-                                <button class="open-case-btn" data-case-id="${inv.caseId}">Открыть</button>
-                            </div>
-                        `;
-                    }
-                }
-                document.querySelectorAll(".open-case-btn").forEach(btn => {
-                    btn.addEventListener("click", (e) => {
-                        e.stopPropagation();
-                        openCase(btn.getAttribute("data-case-id"));
-                    });
-                });
-                if (inventory.length === 0) invDiv.innerHTML = "<div>Пусто. Принимай сигналы!</div>";
-                const repDiv = document.getElementById("reputationInfo");
-                if (data.faction) repDiv.innerHTML = `⭐ Репутация: ${data.reputation?.[data.faction] || 0}`;
-                else repDiv.innerHTML = `⚡ Выбери фракцию, чтобы зарабатывать репутацию.`;
+        html += `</div></div>`;
+    });
+    html += '</div>';
+
+    // Reward claim
+    const allDone = steps.length > 0 && steps.every(s=>s.done);
+    if (allDone) {
+        html += `<button class="btn btn-success btn-full" id="claimQuestRewardBtn">🏆 Забрать награду за квест</button>`;
+    }
+
+    body.innerHTML = html;
+
+    // bind riddle checks
+    body.querySelectorAll('[data-answer]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const i = btn.dataset.step;
+            const input = document.getElementById(`riddleInput_${i}`);
+            const fb = document.getElementById(`riddleFeedback_${i}`);
+            if (!input) return;
+            const val = input.value.trim().toLowerCase();
+            const correct = btn.dataset.answer.trim().toLowerCase();
+            if (val === correct) {
+                fb.innerHTML = `<div class="riddle-feedback feedback-ok">✅ Правильно! Этап разблокирован. +25 XP за загадку</div>`;
+                input.disabled = true; btn.disabled = true;
+                showToast('Загадка решена! +25 XP');
+                // Mark step in Firestore
+                markQuestStep(quest.id, parseInt(i));
             } else {
-                await setDoc(doc(db, "users", userData.id.toString()), {
-                    name: userData.name,
-                    xp: 0,
-                    level: 1,
-                    signalsTaken: [],
-                    inventory: [],
-                    faction: null,
-                    reputation: {
-                        Искатели: 0,
-                        Телефоны: 0,
-                        Аналитики: 0,
-                        Культуры: 0,
-                        Торговцы: 0
-                    },
-                    lastSeen: new Date()
-                });
-                loadUserProfile();
+                fb.innerHTML = `<div class="riddle-feedback feedback-err">❌ Неверно, попробуй ещё раз</div>`;
+                input.style.borderColor = '#601010';
+            }
+        });
+    });
+
+    // bind location claim
+    body.querySelectorAll('[data-action="claimstep"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const i = parseInt(btn.dataset.step);
+            markQuestStep(quest.id, i);
+            showToast('Этап пройден! ✅');
+        });
+    });
+
+    // bind quest reward
+    document.getElementById('claimQuestRewardBtn')?.addEventListener('click', () => {
+        claimQuestReward(quest);
+    });
+
+    document.getElementById('questDetailScreen').classList.add('active');
+}
+
+async function markQuestStep(questId, stepIndex) {
+    try {
+        const questRef = doc(db, 'quests', questId);
+        const snap = await getDoc(questRef);
+        if (!snap.exists()) return;
+        const data = snap.data();
+        const steps = data.steps || [];
+        if (steps[stepIndex]) steps[stepIndex].done = true;
+        // activate next step
+        if (steps[stepIndex+1]) { steps[stepIndex+1].active = true; steps[stepIndex].active = false; }
+        await updateDoc(questRef, { steps });
+        // reload
+        await loadQuests();
+        // re-render detail
+        const q = allQuests.find(x=>x.id===questId);
+        if (q) openQuestDetail(q);
+    } catch(e) { console.error(e); }
+}
+
+async function claimQuestReward(quest) {
+    const userRef = doc(db, 'users', userData.id.toString());
+    const userSnap = await getDoc(userRef);
+    const existing = userSnap.exists() ? userSnap.data() : {};
+    const claimedQuests = existing.claimedQuests || [];
+    if (claimedQuests.includes(quest.id)) { showToast('Награда уже получена',true); return; }
+
+    let xp = (existing.xp||0) + (quest.rewardXP||0);
+    let level = existing.level||1;
+    let inventory = existing.inventory||[];
+
+    // add reward card to inventory
+    if (quest.rewardCardId) inventory = addToInventory(inventory, null, null, null);
+
+    claimedQuests.push(quest.id);
+    await updateDoc(userRef, { xp, level: xp>= level*1000?level+1:level, inventory, claimedQuests });
+
+    // show reward modal
+    document.getElementById('rewardIcon').textContent = quest.rewardEmoji||'🏆';
+    document.getElementById('rewardTitle').textContent = quest.rewardTitle||'Квест завершён!';
+    document.getElementById('rewardDesc').textContent = `+${quest.rewardXP} XP` + (quest.rewardCardName?` · Карточка "${quest.rewardCardName}"` : '');
+    document.getElementById('rewardModal').classList.add('active');
+    document.getElementById('closeRewardBtn').onclick = () => {
+        document.getElementById('rewardModal').classList.remove('active');
+        loadUserProfile(); loadRanking();
+    };
+    loadQuests();
+}
+
+// ─── COLLECTION CARDS ─────────────────────────────────────────────────────
+async function loadCollection() {
+    const grid = document.getElementById('collectionGrid');
+    try {
+        const snap = await getDocs(collection(db, 'cards'));
+        const userSnap = await getDoc(doc(db, 'users', userData.id.toString()));
+        const ownedIds = userSnap.exists() ? (userSnap.data().ownedCards||[]) : [];
+
+        if (snap.empty) {
+            grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#3a4060;font-size:.82rem">Карточки появятся после прохождения квестов 🃏</div>`;
+            return;
+        }
+        grid.innerHTML = '';
+        snap.forEach(docSnap => {
+            const c = { id: docSnap.id, ...docSnap.data() };
+            const owned = ownedIds.includes(c.id);
+            const rarityMap = { epic:'badge-epic', rare:'badge-rare', common:'badge-common' };
+            const artMap = { epic:'coll-art-epic', rare:'coll-art-rare', common:'coll-art-common' };
+            const card = document.createElement('div');
+            card.className = 'coll-card' + (owned?'':' locked');
+            card.innerHTML = `
+                <div class="coll-art ${artMap[c.rarity]||'coll-art-rare'}">
+                    <span>${owned?(c.emoji||'🎴'):'🔒'}</span>
+                    <span class="coll-rarity ${rarityMap[c.rarity]||'badge-rare'}">${(c.rarity||'rare').toUpperCase()}</span>
+                </div>
+                <div class="coll-info">
+                    <div class="coll-name">${owned?c.name:'???'}</div>
+                    <div class="coll-loc">${owned?'📍 '+(c.location||''):'Скрыто'}</div>
+                    ${owned&&c.bonus?`<div class="coll-bonus">+${c.bonus}</div>`:''}
+                </div>`;
+            if (owned) card.addEventListener('click', () => showCardDetail(c));
+            grid.appendChild(card);
+        });
+    } catch(e) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#3a4060;font-size:.82rem">Карточки появятся после прохождения квестов 🃏</div>`;
+    }
+}
+
+function showCardDetail(card) {
+    document.getElementById('cardDetailTitle').textContent = card.name;
+    const b = document.getElementById('cardDetailBadge');
+    const rarityMap = { epic:'badge-epic', rare:'badge-rare', common:'badge-common' };
+    const artMap = { epic:'coll-art-epic', rare:'coll-art-rare', common:'coll-art-common' };
+    b.className = 'badge ' + (rarityMap[card.rarity]||'badge-rare');
+    b.textContent = (card.rarity||'rare').toUpperCase();
+    document.getElementById('cardDetailBody').innerHTML = `
+        <div class="card-detail-art ${artMap[card.rarity]||'coll-art-rare'}">${card.emoji||'🎴'}</div>
+        <p style="font-size:.85rem;color:#c0cce8;line-height:1.6;margin-bottom:14px">${card.lore||''}</p>
+        <div class="card-stats">
+            <div class="card-stat-row"><span>Редкость</span><span class="card-stat-val ${rarityMap[card.rarity]||'badge-rare'}">${(card.rarity||'rare').toUpperCase()}</span></div>
+            <div class="card-stat-row"><span>Серия</span><span class="card-stat-val">${card.series||'Городские тайны'}</span></div>
+            <div class="card-stat-row"><span>Локация</span><span class="card-stat-val">${card.location||'—'}</span></div>
+            ${card.bonus?`<div class="card-stat-row"><span>Бонус</span><span class="card-stat-val" style="color:#4ab87a">${card.bonus}</span></div>`:''}
+        </div>`;
+    document.getElementById('cardDetailScreen').classList.add('active');
+}
+
+// ─── CAMERA / AR (твой оригинальный код) ─────────────────────────────────
+function createBannerForSignal(signal) {
+    const type = signal.type||'weak';
+    const icons = { weak:'fa-signal', strong:'fa-bolt', encrypted:'fa-lock', black:'fa-skull' };
+    const div = document.createElement('div');
+    div.className = 'ar-banner';
+    const styles = { weak:'#7eb8ff', strong:'#ffb347', encrypted:'#b48af0', black:'#ff4d4d' };
+    const col = styles[type]||'#7eb8ff';
+    div.style.borderColor = col;
+    div.style.boxShadow = `0 0 30px ${col}40`;
+    div.innerHTML = `<i class="fas ${icons[type]||'fa-signal'}" style="color:${col}"></i><h3>НАГРАДА</h3><p>Нажмите, чтобы забрать</p>`;
+    return div;
+}
+
+async function startCameraWithBanner(signal) {
+    currentPendingSignal = signal;
+    const modal = document.getElementById('cameraModal');
+    const video = document.getElementById('arVideo');
+    if (currentStream) currentStream.getTracks().forEach(t=>t.stop());
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } });
+        currentStream = stream;
+        video.srcObject = stream;
+        const container = document.getElementById('arBannerContainer');
+        container.innerHTML = '';
+        const banner = createBannerForSignal(signal);
+        container.appendChild(banner);
+        if (orientationHandler) window.removeEventListener('deviceorientation', orientationHandler);
+        orientationHandler = (e) => {
+            if (!banner) return;
+            const g=e.gamma||0, b=e.beta||0;
+            banner.style.transform = `perspective(600px) rotateX(${b/4}deg) rotateY(${g/4}deg) translateY(-8px)`;
+        };
+        window.addEventListener('deviceorientation', orientationHandler);
+        banner.addEventListener('click', () => claimSignalFromAR());
+        modal.classList.add('active');
+    } catch(e) {
+        showToast('Не удалось открыть камеру',true);
+    }
+}
+
+async function claimSignalFromAR() {
+    if (!currentPendingSignal) return;
+    const signal = currentPendingSignal;
+    if (!userLocation) { showToast('Включите геолокацию',true); closeCamera(); return; }
+    const dist = getDistance(userLocation.lat, userLocation.lng, signal.location.latitude, signal.location.longitude);
+    if (dist > 50) { showToast(`Слишком далеко (${Math.round(dist)} м)`,true); closeCamera(); return; }
+    if (signal.expiresAt && signal.expiresAt.toDate() < Date.now()) { showToast('Сигнал истёк',true); closeCamera(); return; }
+    const ok = await claimSignal(signal.id, signal.rewardXP, signal.location.latitude, signal.location.longitude, signal.rewardCaseId);
+    if (ok) { closeCamera(); document.getElementById('detailScreen').classList.remove('active'); }
+    else closeCamera();
+}
+
+function closeCamera() {
+    if (currentStream) { currentStream.getTracks().forEach(t=>t.stop()); currentStream=null; }
+    if (orientationHandler) { window.removeEventListener('deviceorientation', orientationHandler); orientationHandler=null; }
+    const v = document.getElementById('arVideo');
+    if (v) v.srcObject = null;
+    document.getElementById('cameraModal').classList.remove('active');
+    currentPendingSignal = null;
+}
+
+// ─── CLAIM SIGNAL (твой оригинальный код) ────────────────────────────────
+async function claimSignal(signalId, rewardXP, signalLat, signalLng, rewardCaseId=null) {
+    if (!userLocation) { showToast('Включите геолокацию',true); return false; }
+    const distance = getDistance(userLocation.lat, userLocation.lng, signalLat, signalLng);
+    if (distance > 50) { showToast(`Слишком далеко (${Math.round(distance)} м)`,true); return false; }
+    try {
+        await runTransaction(db, async (transaction) => {
+            const signalRef = doc(db,'signals',signalId);
+            const signalSnap = await transaction.get(signalRef);
+            if (!signalSnap.exists()||signalSnap.data().usesLeft<=0) throw new Error('Сигнал уже исчерпан');
+            if (signalSnap.data().expiresAt&&signalSnap.data().expiresAt.toDate()<Date.now()) throw new Error('Сигнал истёк');
+            const userRef = doc(db,'users',userData.id.toString());
+            const userSnap = await transaction.get(userRef);
+            const taken = userSnap.exists()?(userSnap.data().signalsTaken||[]):[];
+            if (taken.includes(signalId)) throw new Error('Вы уже активировали этот сигнал');
+            transaction.update(signalRef,{usesLeft:signalSnap.data().usesLeft-1});
+            const ex = userSnap.exists()?userSnap.data():{};
+            let xp = typeof ex.xp==='number'?ex.xp:0;
+            let level = typeof ex.level==='number'?ex.level:1;
+            let inventory = Array.isArray(ex.inventory)?ex.inventory:[];
+            const caseId = rewardCaseId||signalSnap.data().rewardCaseId;
+            if (caseId) inventory = addToInventory(inventory,null,caseId);
+            else if (signalSnap.data().rewardItem) inventory = addToInventory(inventory,signalSnap.data().rewardItem,null,signalSnap.data().itemImageUrl||null);
+            let newXP = xp+(rewardXP||0);
+            transaction.set(userRef,{
+                name:userData.name, xp:newXP, level:newXP>=level*1000?level+1:level,
+                signalsTaken:[...taken,signalId], lastSeen:new Date(),
+                inventory, faction:ex.faction||null, reputation:ex.reputation||{}
+            },{merge:true});
+        });
+        showToast(`✅ Сигнал принят! +${rewardXP} XP`);
+        loadUserProfile(); loadRanking();
+        return true;
+    } catch(e) {
+        showToast(e.message,true);
+        return false;
+    }
+}
+
+// ─── OPEN CASE (твой оригинальный код) ───────────────────────────────────
+async function openCase(caseId) {
+    const snap = await getDoc(doc(db,'cases',caseId));
+    if (!snap.exists()) { showToast('Кейс не найден',true); return; }
+    const caseData = snap.data();
+    if (!caseData.items?.length) { showToast('Кейс пуст',true); return; }
+    const total = caseData.items.reduce((s,i)=>s+i.weight,0);
+    let r = Math.random()*total, selected = null;
+    for (const item of caseData.items) {
+        if (r<item.weight) { selected=item; break; }
+        r-=item.weight;
+    }
+    if (!selected) return;
+    document.getElementById('rewardIcon').textContent = selected.imageUrl?`<img src="${selected.imageUrl}" style="width:80px;height:80px;object-fit:contain">`:'💎';
+    document.getElementById('rewardTitle').textContent = selected.itemName;
+    document.getElementById('rewardDesc').textContent = `+${selected.rewardXP||0} XP${selected.rewardItem?', '+selected.rewardItem:''}`;
+    document.getElementById('rewardModal').classList.add('active');
+    window.pendingReward = selected;
+    window.pendingCaseId = caseId;
+    document.getElementById('closeRewardBtn').onclick = async () => {
+        document.getElementById('rewardModal').classList.remove('active');
+        const uRef = doc(db,'users',userData.id.toString());
+        const uSnap = await getDoc(uRef);
+        if (!uSnap.exists()) return;
+        let inv = uSnap.data().inventory||[];
+        const ci = inv.findIndex(i=>i.type==='case'&&i.caseId===caseId);
+        if (ci!==-1) { inv[ci].count--; if(inv[ci].count===0)inv.splice(ci,1); }
+        if (window.pendingReward.rewardItem) {
+            const n=window.pendingReward.rewardItem, im=window.pendingReward.imageUrl||null;
+            const ei=inv.findIndex(i=>i.type==='item'&&i.name===n);
+            if(ei!==-1){inv[ei].count++;if(im&&!inv[ei].imageUrl)inv[ei].imageUrl=im;}
+            else inv.push({type:'item',name:n,count:1,imageUrl:im});
+        }
+        await updateDoc(uRef,{inventory:inv,xp:(uSnap.data().xp||0)+(window.pendingReward.rewardXP||0)});
+        showToast(`Вы получили ${window.pendingReward.itemName}!`);
+        loadUserProfile();
+    };
+}
+
+// ─── PROFILE ──────────────────────────────────────────────────────────────
+async function loadUserProfile() {
+    const userRef = doc(db,'users',userData.id.toString());
+    const snap = await getDoc(userRef);
+    if (snap.exists()) {
+        const d = snap.data();
+        document.getElementById('profileUsername').textContent = d.name||userData.name;
+        document.getElementById('profileLevel').textContent = d.level||1;
+        document.getElementById('headerLevel').textContent = `Ур.${d.level||1}`;
+        document.getElementById('headerXP').textContent = `${d.xp||0} XP`;
+        document.getElementById('profileXpCurrent').textContent = d.xp||0;
+        const needed = (d.level||1)*1000;
+        document.getElementById('profileXpNeeded').textContent = needed;
+        document.getElementById('profileXpFill').style.width = `${Math.min(((d.xp||0)/needed)*100,100)}%`;
+        document.getElementById('profileFactionTag').textContent = d.faction||'Без фракции';
+        document.getElementById('statSignals').textContent = (d.signalsTaken||[]).length;
+        document.getElementById('statQuests').textContent = (d.claimedQuests||[]).length;
+        document.getElementById('statCards').textContent = (d.ownedCards||[]).length;
+
+        // inventory
+        const invDiv = document.getElementById('inventoryItems');
+        invDiv.innerHTML = '';
+        const inv = d.inventory||[];
+        const caseCache = new Map();
+        for (const item of inv) {
+            if (item.type==='item') {
+                invDiv.innerHTML += `<div class="inv-item">${item.imageUrl?`<img src="${item.imageUrl}" style="width:32px;height:32px;object-fit:contain;display:block;margin:0 auto 6px">`:'📦'}<br><strong>${item.name}</strong><br>×${item.count}</div>`;
+            } else if (item.type==='case') {
+                let cd = caseCache.get(item.caseId);
+                if (!cd) { const cs=await getDoc(doc(db,'cases',item.caseId)); cd=cs.exists()?cs.data():{name:`Кейс ${item.caseId}`}; caseCache.set(item.caseId,cd); }
+                invDiv.innerHTML += `<div class="inv-item case-item">🎁<br><strong>${cd.name}</strong><br>×${item.count}<br><button class="open-case-btn" data-cid="${item.caseId}">Открыть</button></div>`;
             }
         }
+        if (!inv.length) invDiv.innerHTML = '<div style="color:#3a4060;font-size:.78rem">Пусто — принимай сигналы!</div>';
+        document.querySelectorAll('.open-case-btn').forEach(btn => {
+            btn.addEventListener('click', e => { e.stopPropagation(); openCase(btn.dataset.cid); });
+        });
 
-        async function loadRanking() {
-            const q = query(collection(db, "users"), orderBy("xp", "desc"), limit(10));
-            const snap = await getDocs(q);
-            const rankingDiv = document.getElementById("rankingList");
-            rankingDiv.innerHTML = "";
-            let pos = 1;
-            snap.forEach(doc => {
-                const u = doc.data();
-                rankingDiv.innerHTML += `<li><span>${pos}. ${u.name}</span><span>Lvl ${u.level} | ${u.xp} XP</span></li>`;
-                pos++;
-            });
-            if (snap.empty) rankingDiv.innerHTML = "<li>Нет игроков</li>";
-        }
+        const repDiv = document.getElementById('reputationInfo');
+        repDiv.textContent = d.faction ? `⭐ Репутация фракции: ${d.reputation?.[d.faction]||0}` : '';
 
-        function initFactionButtons() {
-            document.querySelectorAll("#factionButtons button").forEach(btn => {
-                btn.addEventListener("click", async () => {
-                    const chosen = btn.dataset.faction;
-                    const userRef = doc(db, "users", userData.id.toString());
-                    const snap = await getDoc(userRef);
-                    if (!snap.exists() || !snap.data().faction) {
-                        await updateDoc(userRef, {
-                            faction: chosen
-                        });
-                        showToast(`Ты присоединился к фракции "${chosen}"!`);
-                        loadUserProfile();
-                    } else showToast(`Ты уже во фракции ${snap.data().faction}.`, true);
-                });
-            });
-        }
-
-        function bindShopEvents() {
-            document.querySelector(".buy-premium")?.addEventListener("click", () => showToast("✨ Премиум активирован (демо)"));
-            document.querySelector(".buy-signal")?.addEventListener("click", () => showToast("🔮 Эксклюзивный сигнал добавлен (демо)"));
-            document.querySelector(".buy-booster")?.addEventListener("click", () => showToast("⚡ Бустер опыта активирован"));
-            document.querySelector(".buy-drop")?.addEventListener("click", () => showToast("🎁 Секретный дроп получен"));
-        }
-
-        function initNavigation() {
-            const navItems = document.querySelectorAll(".nav-item");
-            const sections = {
-                map: "mapSection",
-                signals: "signalsSection",
-                inventory: "inventorySection",
-                profile: "profileSection",
-                shop: "shopSection"
-            };
-            navItems.forEach(item => {
-                item.addEventListener("click", () => {
-                    const key = item.dataset.nav;
-                    Object.values(sections).forEach(secId => document.getElementById(secId).classList.remove("active-section"));
-                    if (sections[key]) document.getElementById(sections[key]).classList.add("active-section");
-                    navItems.forEach(nav => nav.classList.remove("active"));
-                    item.classList.add("active");
-                    if (key === "profile" || key === "inventory") loadUserProfile();
-                    if (key === "signals") {
-                        if (document.querySelector(".tab-btn.active")?.dataset.tab === "archive") loadArchive();
-                    }
-                });
-            });
-            document.querySelector(".nav-item[data-nav='map']").classList.add("active");
-            document.querySelectorAll(".tab-btn").forEach(btn => {
-                btn.addEventListener("click", () => {
-                    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-                    btn.classList.add("active");
-                    if (btn.dataset.tab === "active") {
-                        document.getElementById("activeSignalsList").style.display = "block";
-                        document.getElementById("archiveSignalsList").style.display = "none";
-                        renderActiveSignals();
-                    } else {
-                        document.getElementById("activeSignalsList").style.display = "none";
-                        document.getElementById("archiveSignalsList").style.display = "block";
-                        loadArchive();
-                    }
-                });
-            });
-            document.getElementById("closeDetailBtn").addEventListener("click", () => {
-                if (currentTimerInterval) clearInterval(currentTimerInterval);
-                document.getElementById("detailScreen").classList.remove("active");
-            });
-            document.getElementById("closeCameraBtn").addEventListener("click", () => closeCamera());
-        }
-
-        initMap();
-        subscribeSignals();
+        // highlight chosen faction
+        document.querySelectorAll('.faction-btn').forEach(btn => {
+            btn.classList.toggle('chosen', btn.dataset.faction===d.faction);
+        });
+    } else {
+        await setDoc(doc(db,'users',userData.id.toString()), {
+            name:userData.name, xp:0, level:1, signalsTaken:[], inventory:[],
+            faction:null, reputation:{Искатели:0,Аналитики:0,Культуры:0,Торговцы:0},
+            claimedQuests:[], ownedCards:[], lastSeen:new Date()
+        });
         loadUserProfile();
-        loadRanking();
-        initNavigation();
-        initFactionButtons();
-        bindShopEvents();
-    </script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-</body>
+    }
+}
 
+async function loadRanking() {
+    const q = query(collection(db,'users'),orderBy('xp','desc'),limit(10));
+    const snap = await getDocs(q);
+    const div = document.getElementById('rankingList');
+    div.innerHTML = '';
+    const colors = ['#b48af0','#7eb8ff','#4ab87a','#ffd966','#ff9090'];
+    let pos = 1;
+    snap.forEach(docSnap => {
+        const u = docSnap.data();
+        const col = colors[(pos-1)%colors.length];
+        const initials = (u.name||'?').slice(0,2).toUpperCase();
+        div.innerHTML += `
+            <li class="ranking-item">
+                <span class="rank-pos">${pos}</span>
+                <div class="rank-avatar" style="background:${col}22;color:${col}">${initials}</div>
+                <span class="rank-name">${u.name}</span>
+                <span class="rank-xp">Lv${u.level} · ${u.xp} XP</span>
+            </li>`;
+        pos++;
+    });
+    if (snap.empty) div.innerHTML = '<li style="color:#3a4060;font-size:.82rem;padding:8px 0">Нет игроков</li>';
+}
+
+// ─── FACTION ──────────────────────────────────────────────────────────────
+function initFactionButtons() {
+    document.querySelectorAll('.faction-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const chosen = btn.dataset.faction;
+            const uRef = doc(db,'users',userData.id.toString());
+            const snap = await getDoc(uRef);
+            if (!snap.exists()||!snap.data().faction) {
+                await updateDoc(uRef, { faction:chosen });
+                showToast(`Добро пожаловать во фракцию "${chosen}"!`);
+                loadUserProfile();
+            } else showToast(`Ты уже во фракции ${snap.data().faction}`,true);
+        });
+    });
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────────────────
+function initNavigation() {
+    const sections = {
+        map:'mapSection', signals:'signalsSection',
+        inventory:'inventorySection', profile:'profileSection', shop:'shopSection'
+    };
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const key = item.dataset.nav;
+            Object.values(sections).forEach(id => document.getElementById(id).classList.remove('active-section'));
+            document.getElementById(sections[key])?.classList.add('active-section');
+            document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+            item.classList.add('active');
+            if (key==='profile'||key==='inventory') { loadUserProfile(); if(key==='inventory')loadCollection(); }
+            if (key==='signals') renderSignalsList();
+        });
+    });
+
+    // tabs inside signals section
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('questsTab').style.display = btn.dataset.tab==='quests'?'block':'none';
+            document.getElementById('signalsTab').style.display = btn.dataset.tab==='signals'?'block':'none';
+            document.getElementById('archiveTab').style.display = btn.dataset.tab==='archive'?'block':'none';
+            if (btn.dataset.tab==='archive') loadArchive();
+            if (btn.dataset.tab==='signals') renderSignalsList();
+        });
+    });
+
+    // close buttons
+    document.getElementById('closeDetailBtn').addEventListener('click', () => {
+        if (currentTimerInterval) clearInterval(currentTimerInterval);
+        document.getElementById('detailScreen').classList.remove('active');
+    });
+    document.getElementById('closeQuestDetail').addEventListener('click', () => {
+        document.getElementById('questDetailScreen').classList.remove('active');
+    });
+    document.getElementById('closeCardDetail').addEventListener('click', () => {
+        document.getElementById('cardDetailScreen').classList.remove('active');
+    });
+    document.getElementById('closeCameraBtn').addEventListener('click', () => closeCamera());
+
+    // shop buttons
+    document.querySelectorAll('#shopSection .btn-primary').forEach(btn => {
+        btn.addEventListener('click', () => showToast('✨ Функция в разработке (demo)'));
+    });
+}
+
+// ─── ARCHIVE (original) ───────────────────────────────────────────────────
+async function loadArchive() {
+    const uSnap = await getDoc(doc(db,'users',userData.id.toString()));
+    const div = document.getElementById('archiveSignalsList');
+    if (!uSnap.exists()) { div.innerHTML='<div class="card" style="color:#3a4060;font-size:.82rem">Пусто</div>'; return; }
+    const ids = uSnap.data().signalsTaken||[];
+    if (!ids.length) { div.innerHTML='<div class="card" style="color:#3a4060;font-size:.82rem">Вы пока не принимали сигналов</div>'; return; }
+    const snaps = await Promise.all(ids.map(id=>getDoc(doc(db,'signals',id))));
+    div.innerHTML = '';
+    snaps.forEach(snap => {
+        if (!snap.exists()) return;
+        const s = snap.data();
+        const cls = {strong:'strong',encrypted:'encrypted',black:'black'}[s.type]||'weak';
+        div.innerHTML += `<div class="signal-card ${cls}">
+            <div style="font-weight:600;font-size:.85rem;margin-bottom:4px">${s.name} <span style="font-size:.7rem;font-weight:400;color:#3a4060">(${s.type?.toUpperCase()})</span></div>
+            <div style="font-size:.75rem;color:#3a4060">🎁 +${s.rewardXP} XP, ${s.rewardItem||'предмет'} · ✅ Активирован</div>
+        </div>`;
+    });
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
+initMap();
+subscribeSignals();
+loadQuests();
+loadUserProfile();
+loadRanking();
+initNavigation();
+initFactionButtons();
+</script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+</body>
 </html>
